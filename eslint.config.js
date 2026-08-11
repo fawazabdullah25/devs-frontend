@@ -15,6 +15,13 @@ export default [
     },
   },
   {
-    ignores: ["eslint.config.js", ".prettierrc"],
+    files: ["src/components/ui/**/*.tsx"],
+    rules: {
+      "import/consistent-type-specifier-style": "off",
+      "@typescript-eslint/no-unnecessary-condition": "off",
+    },
+  },
+  {
+    ignores: ["eslint.config.js", ".prettierrc", ".output/**"],
   },
 ]

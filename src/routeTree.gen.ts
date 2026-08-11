@@ -8,59 +8,219 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root"
-import { Route as IndexRouteImport } from "./routes/index"
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as LocaleRouteImport } from './routes/$locale'
+import { Route as LocaleIndexRouteImport } from './routes/$locale.index'
+import { Route as LocaleAdminRouteImport } from './routes/$locale.admin'
+import { Route as LocaleCatalogRouteImport } from './routes/$locale.catalog'
+import { Route as LocaleCoursesSlugRouteImport } from './routes/$locale.courses.$slug'
+import { Route as LocaleSeriesSlugRouteImport } from './routes/$locale.series.$slug'
+import { Route as LocaleSeriesSeriesSlugLessonsLessonSlugRouteImport } from './routes/$locale.series.$seriesSlug.lessons.$lessonSlug'
 
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LocaleRoute = LocaleRouteImport.update({
+  id: '/$locale',
+  path: '/$locale',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleIndexRoute = LocaleIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LocaleRoute,
+} as any)
+const LocaleAdminRoute = LocaleAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => LocaleRoute,
+} as any)
+const LocaleCatalogRoute = LocaleCatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
+  getParentRoute: () => LocaleRoute,
+} as any)
+const LocaleCoursesSlugRoute = LocaleCoursesSlugRouteImport.update({
+  id: '/courses/$slug',
+  path: '/courses/$slug',
+  getParentRoute: () => LocaleRoute,
+} as any)
+const LocaleSeriesSlugRoute = LocaleSeriesSlugRouteImport.update({
+  id: '/series/$slug',
+  path: '/series/$slug',
+  getParentRoute: () => LocaleRoute,
+} as any)
+const LocaleSeriesSeriesSlugLessonsLessonSlugRoute =
+  LocaleSeriesSeriesSlugLessonsLessonSlugRouteImport.update({
+    id: '/series/$seriesSlug/lessons/$lessonSlug',
+    path: '/series/$seriesSlug/lessons/$lessonSlug',
+    getParentRoute: () => LocaleRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute
+  '/': typeof IndexRoute
+  '/$locale': typeof LocaleRouteWithChildren
+  '/$locale/admin': typeof LocaleAdminRoute
+  '/$locale/catalog': typeof LocaleCatalogRoute
+  '/$locale/': typeof LocaleIndexRoute
+  '/$locale/courses/$slug': typeof LocaleCoursesSlugRoute
+  '/$locale/series/$slug': typeof LocaleSeriesSlugRoute
+  '/$locale/series/$seriesSlug/lessons/$lessonSlug': typeof LocaleSeriesSeriesSlugLessonsLessonSlugRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute
+  '/': typeof IndexRoute
+  '/$locale/admin': typeof LocaleAdminRoute
+  '/$locale/catalog': typeof LocaleCatalogRoute
+  '/$locale': typeof LocaleIndexRoute
+  '/$locale/courses/$slug': typeof LocaleCoursesSlugRoute
+  '/$locale/series/$slug': typeof LocaleSeriesSlugRoute
+  '/$locale/series/$seriesSlug/lessons/$lessonSlug': typeof LocaleSeriesSeriesSlugLessonsLessonSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  "/": typeof IndexRoute
+  '/': typeof IndexRoute
+  '/$locale': typeof LocaleRouteWithChildren
+  '/$locale/admin': typeof LocaleAdminRoute
+  '/$locale/catalog': typeof LocaleCatalogRoute
+  '/$locale/': typeof LocaleIndexRoute
+  '/$locale/courses/$slug': typeof LocaleCoursesSlugRoute
+  '/$locale/series/$slug': typeof LocaleSeriesSlugRoute
+  '/$locale/series/$seriesSlug/lessons/$lessonSlug': typeof LocaleSeriesSeriesSlugLessonsLessonSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/"
+  fullPaths:
+    | '/'
+    | '/$locale'
+    | '/$locale/admin'
+    | '/$locale/catalog'
+    | '/$locale/'
+    | '/$locale/courses/$slug'
+    | '/$locale/series/$slug'
+    | '/$locale/series/$seriesSlug/lessons/$lessonSlug'
   fileRoutesByTo: FileRoutesByTo
-  to: "/"
-  id: "__root__" | "/"
+  to:
+    | '/'
+    | '/$locale/admin'
+    | '/$locale/catalog'
+    | '/$locale'
+    | '/$locale/courses/$slug'
+    | '/$locale/series/$slug'
+    | '/$locale/series/$seriesSlug/lessons/$lessonSlug'
+  id:
+    | '__root__'
+    | '/'
+    | '/$locale'
+    | '/$locale/admin'
+    | '/$locale/catalog'
+    | '/$locale/'
+    | '/$locale/courses/$slug'
+    | '/$locale/series/$slug'
+    | '/$locale/series/$seriesSlug/lessons/$lessonSlug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LocaleRoute: typeof LocaleRouteWithChildren
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/": {
-      id: "/"
-      path: "/"
-      fullPath: "/"
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/$locale': {
+      id: '/$locale'
+      path: '/$locale'
+      fullPath: '/$locale'
+      preLoaderRoute: typeof LocaleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale/': {
+      id: '/$locale/'
+      path: '/'
+      fullPath: '/$locale/'
+      preLoaderRoute: typeof LocaleIndexRouteImport
+      parentRoute: typeof LocaleRoute
+    }
+    '/$locale/admin': {
+      id: '/$locale/admin'
+      path: '/admin'
+      fullPath: '/$locale/admin'
+      preLoaderRoute: typeof LocaleAdminRouteImport
+      parentRoute: typeof LocaleRoute
+    }
+    '/$locale/catalog': {
+      id: '/$locale/catalog'
+      path: '/catalog'
+      fullPath: '/$locale/catalog'
+      preLoaderRoute: typeof LocaleCatalogRouteImport
+      parentRoute: typeof LocaleRoute
+    }
+    '/$locale/courses/$slug': {
+      id: '/$locale/courses/$slug'
+      path: '/courses/$slug'
+      fullPath: '/$locale/courses/$slug'
+      preLoaderRoute: typeof LocaleCoursesSlugRouteImport
+      parentRoute: typeof LocaleRoute
+    }
+    '/$locale/series/$slug': {
+      id: '/$locale/series/$slug'
+      path: '/series/$slug'
+      fullPath: '/$locale/series/$slug'
+      preLoaderRoute: typeof LocaleSeriesSlugRouteImport
+      parentRoute: typeof LocaleRoute
+    }
+    '/$locale/series/$seriesSlug/lessons/$lessonSlug': {
+      id: '/$locale/series/$seriesSlug/lessons/$lessonSlug'
+      path: '/series/$seriesSlug/lessons/$lessonSlug'
+      fullPath: '/$locale/series/$seriesSlug/lessons/$lessonSlug'
+      preLoaderRoute: typeof LocaleSeriesSeriesSlugLessonsLessonSlugRouteImport
+      parentRoute: typeof LocaleRoute
     }
   }
 }
 
+interface LocaleRouteChildren {
+  LocaleAdminRoute: typeof LocaleAdminRoute
+  LocaleCatalogRoute: typeof LocaleCatalogRoute
+  LocaleIndexRoute: typeof LocaleIndexRoute
+  LocaleCoursesSlugRoute: typeof LocaleCoursesSlugRoute
+  LocaleSeriesSlugRoute: typeof LocaleSeriesSlugRoute
+  LocaleSeriesSeriesSlugLessonsLessonSlugRoute: typeof LocaleSeriesSeriesSlugLessonsLessonSlugRoute
+}
+
+const LocaleRouteChildren: LocaleRouteChildren = {
+  LocaleAdminRoute: LocaleAdminRoute,
+  LocaleCatalogRoute: LocaleCatalogRoute,
+  LocaleIndexRoute: LocaleIndexRoute,
+  LocaleCoursesSlugRoute: LocaleCoursesSlugRoute,
+  LocaleSeriesSlugRoute: LocaleSeriesSlugRoute,
+  LocaleSeriesSeriesSlugLessonsLessonSlugRoute:
+    LocaleSeriesSeriesSlugLessonsLessonSlugRoute,
+}
+
+const LocaleRouteWithChildren =
+  LocaleRoute._addFileChildren(LocaleRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LocaleRoute: LocaleRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from "./router.tsx"
-import type { createStart } from "@tanstack/react-start"
-declare module "@tanstack/react-start" {
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
