@@ -27,7 +27,7 @@ function HomePage() {
 
   return (
     <>
-      <section className="brand-glow brand-grid relative isolate overflow-hidden border-b">
+      <section className="brand-glow brand-grid relative isolate overflow-hidden">
         <div className="content-shell grid min-h-[620px] items-center gap-12 py-20 lg:grid-cols-[1.15fr_0.85fr] lg:py-28">
           <div className="flex max-w-3xl flex-col items-start gap-7">
             <div
@@ -71,7 +71,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="content-shell relative z-10 -mt-8">
+      <section className="content-shell relative z-10 py-8">
         <div className="grid gap-3 sm:grid-cols-3">
           <StatCard
             icon={BookOpenIcon}
@@ -90,6 +90,7 @@ function HomePage() {
           />
         </div>
       </section>
+      <Separator />
 
       {home.featured.length >= 4 && (
         <section className="content-shell py-24">
