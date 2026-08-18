@@ -6,7 +6,9 @@ import type {
   ContentUnit,
   HomePayload,
   LearningContent,
+  MediaAsset,
   MediaProcessingStatus,
+  StaticHlsInput,
   UnitInput,
   UploadGrant,
 } from "@/types/content"
@@ -14,6 +16,7 @@ import type {
 const apiUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, "")
 const useMocks = import.meta.env.VITE_USE_MOCKS === "true" || !apiUrl
 const mockAdminContent = [...mockContent]
+const mockMedia = new Map<string, MediaAsset>()
 
 export class ApiError extends Error {
   status: number
@@ -251,8 +254,16 @@ export async function requestMediaUpload(file: File): Promise<UploadGrant> {
       }),
     })
   }
+  const mediaId = `media-${crypto.randomUUID()}`
+  mockMedia.set(mediaId, {
+    id: mediaId,
+    status: "UPLOADING",
+    durationSeconds: 0,
+    provider: "MUX",
+    captions: [],
+  })
   return {
-    mediaId: `media-${crypto.randomUUID()}`,
+    mediaId,
     uploadUrl: "mock://upload",
     objectKey: `source/mock/${file.name}`,
     headers: { "Content-Type": file.type || "video/mp4" },
@@ -298,11 +309,48 @@ export async function uploadMediaSource(
 export async function startMediaIngest(mediaId: string): Promise<void> {
   if (useMocks) {
     await new Promise((resolve) => setTimeout(resolve, 250))
+    const media = mockMedia.get(mediaId)
+    if (media) mockMedia.set(mediaId, { ...media, status: "PROCESSING" })
     return
   }
   await apiFetch(`/admin/media/${encodeURIComponent(mediaId)}/ingest`, {
     method: "POST",
   })
+}
+
+export async function registerStaticHls(
+  input: StaticHlsInput
+): Promise<MediaProcessingStatus> {
+  if (!useMocks) {
+    return apiFetch<MediaProcessingStatus>("/admin/media/static-hls", {
+      method: "POST",
+      body: JSON.stringify(input),
+    })
+  }
+  await new Promise((resolve) => setTimeout(resolve, 250))
+  const mediaId = `media-${crypto.randomUUID()}`
+  const media: MediaAsset = {
+    id: mediaId,
+    status: "READY",
+    durationSeconds: input.durationSeconds,
+    provider: "STATIC_HLS",
+    playbackUrl: `https://video.example.test/${input.manifestPath}`,
+    captions: input.captions.map((caption) => ({
+      language: caption.language,
+      label: caption.label,
+      url: `https://video.example.test/${caption.path}`,
+      defaultTrack: caption.defaultTrack,
+    })),
+  }
+  mockMedia.set(mediaId, media)
+  return {
+    mediaId,
+    status: "READY",
+    provider: "STATIC_HLS",
+    playbackUrl: media.playbackUrl,
+    durationSeconds: input.durationSeconds,
+    captions: media.captions,
+  }
 }
 
 export async function getMediaStatus(
@@ -316,6 +364,7 @@ export async function getMediaStatus(
   return {
     mediaId,
     status: "READY",
+    provider: mockMedia.get(mediaId)?.provider ?? "MUX",
     durationSeconds: 3600,
     playbackId: `mock-${mediaId}`,
   }
@@ -341,12 +390,13 @@ export async function addContentUnit(
     summary: input.summary
       ? { en: input.summary, ar: input.summaryAr }
       : undefined,
-    media: {
+    media: mockMedia.get(input.mediaId) ?? {
       id: input.mediaId,
       status: "READY",
       durationSeconds: 3600,
       provider: "MUX",
       playbackId: `mock-${input.mediaId}`,
+      captions: [],
     },
   }
   const updated: LearningContent = {

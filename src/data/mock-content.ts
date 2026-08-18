@@ -71,6 +71,7 @@ const lesson = (
     status: "READY" as const,
     durationSeconds,
     provider: "LOCAL" as const,
+    captions: [],
   },
 })
 

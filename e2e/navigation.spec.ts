@@ -55,6 +55,29 @@ test("mobile admin navigation opens from a sheet", async ({ page }) => {
   await expect(navigation).toBeHidden()
 })
 
+test("admin media workflow exposes static HLS and legacy Mux inputs", async ({
+  page,
+}) => {
+  await page.goto("/en/admin")
+  await page.getByRole("tab", { name: "Media inbox" }).click()
+
+  await page.getByRole("button", { name: "Add video" }).first().click()
+  const dialog = page.getByRole("dialog", { name: "Curriculum and video" })
+  await expect(dialog).toBeVisible()
+  await expect(
+    dialog.getByRole("button", { name: "Static HLS package" })
+  ).toHaveAttribute("aria-pressed", "true")
+  await expect(dialog.getByLabel("Relative master playlist path")).toBeVisible()
+  await expect(dialog.getByLabel("English captions")).toBeVisible()
+  await expect(dialog.getByLabel("Arabic captions")).toBeVisible()
+
+  await dialog.getByRole("button", { name: "Mux upload" }).click()
+  await expect(dialog.getByLabel("Video file")).toBeVisible()
+  await expect(dialog.getByLabel("Relative master playlist path")).toHaveCount(
+    0
+  )
+})
+
 test("public navigation and course metadata avoid redundant labels", async ({
   page,
 }) => {

@@ -1,6 +1,6 @@
 # Devs frontend
 
-The Devs web application uses React 19, TanStack Start/Router, Tailwind CSS 4, Base UI-backed ShadCN components, Phosphor icons, Alexandria, and Mux Player.
+The Devs web application uses React 19, TanStack Start/Router, Tailwind CSS 4, Base UI-backed ShadCN components, Phosphor icons, Alexandria, Vidstack with a locally bundled `hls.js`, and the legacy Mux Player adapter.
 
 ## Commands
 

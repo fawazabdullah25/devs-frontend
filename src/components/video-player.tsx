@@ -1,5 +1,16 @@
 import MuxPlayer from "@mux/mux-player-react"
 import { VideoCameraIcon } from "@phosphor-icons/react"
+import {
+  isHLSProvider,
+  MediaPlayer,
+  MediaProvider,
+  Track,
+} from "@vidstack/react"
+import type { MediaProviderAdapter } from "@vidstack/react"
+import {
+  DefaultVideoLayout,
+  defaultLayoutIcons,
+} from "@vidstack/react/player/layouts/default"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useLocale } from "@/lib/locale-context"
@@ -14,8 +25,12 @@ export function VideoPlayer({
 }) {
   const { t } = useLocale()
   const media = unit.media
+  const playbackSource =
+    media.provider === "MUX"
+      ? media.playbackId
+      : media.playbackUrl || media.playbackId
 
-  if (media.status !== "READY" || !media.playbackId) {
+  if (media.status !== "READY" || !playbackSource) {
     return (
       <div className="grid aspect-video place-items-center border bg-muted/30 p-6">
         <Alert className="max-w-xl bg-background">
@@ -33,12 +48,43 @@ export function VideoPlayer({
     return (
       <video
         className="aspect-video w-full bg-foreground"
-        src={media.playbackId}
+        src={playbackSource}
         controls
         preload="metadata"
       >
         <track kind="captions" />
       </video>
+    )
+  }
+
+  if (media.provider === "STATIC_HLS") {
+    const configureHls = (provider: MediaProviderAdapter | null) => {
+      if (isHLSProvider(provider)) provider.library = () => import("hls.js")
+    }
+
+    return (
+      <MediaPlayer
+        className="devs-media-player aspect-video w-full overflow-hidden bg-black text-white"
+        title={title}
+        src={{ src: playbackSource, type: "application/x-mpegurl" }}
+        crossOrigin
+        playsInline
+        onProviderChange={configureHls}
+      >
+        <MediaProvider>
+          {media.captions.map((caption) => (
+            <Track
+              key={`${caption.language}-${caption.url}`}
+              src={caption.url}
+              kind="subtitles"
+              label={caption.label}
+              language={caption.language}
+              default={caption.defaultTrack}
+            />
+          ))}
+        </MediaProvider>
+        <DefaultVideoLayout icons={defaultLayoutIcons} />
+      </MediaPlayer>
     )
   }
 

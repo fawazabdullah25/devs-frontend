@@ -100,6 +100,7 @@ import {
   getAdminContent,
   getAdminSummary,
   publishContent,
+  registerStaticHls,
   requestMediaUpload,
   startMediaIngest,
   updateDraft,
@@ -769,7 +770,9 @@ function StatusBadge({ status }: { status: LearningContent["status"] }) {
   )
 }
 
-type MediaStage = "idle" | "uploading" | "ingesting" | "attaching" | "done"
+type MediaStage =
+  "idle" | "uploading" | "ingesting" | "registering" | "attaching" | "done"
+type MediaSourceKind = "STATIC_HLS" | "MUX"
 
 function MediaWorkflow({
   content,
@@ -779,7 +782,15 @@ function MediaWorkflow({
   onSaved: (saved: LearningContent) => void
 }) {
   const { locale, t } = useLocale()
+  const [sourceKind, setSourceKind] =
+    React.useState<MediaSourceKind>("STATIC_HLS")
   const [file, setFile] = React.useState<File | null>(null)
+  const [manifestPath, setManifestPath] = React.useState("")
+  const [durationSeconds, setDurationSeconds] = React.useState(3600)
+  const [encodingVersion, setEncodingVersion] = React.useState("")
+  const [checksumSha256, setChecksumSha256] = React.useState("")
+  const [englishCaptionPath, setEnglishCaptionPath] = React.useState("")
+  const [arabicCaptionPath, setArabicCaptionPath] = React.useState("")
   const [title, setTitle] = React.useState("")
   const [slug, setSlug] = React.useState("")
   const [slugEdited, setSlugEdited] = React.useState(false)
@@ -799,33 +810,79 @@ function MediaWorkflow({
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     setError(null)
-    if (!file || !title.trim() || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    const invalidCommon =
+      !title.trim() || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
+    const invalidStaticHls =
+      sourceKind === "STATIC_HLS" &&
+      (!manifestPath.trim() ||
+        !encodingVersion.trim() ||
+        durationSeconds <= 0 ||
+        (checksumSha256.length > 0 &&
+          !/^[a-fA-F0-9]{64}$/.test(checksumSha256)))
+    if (invalidCommon || invalidStaticHls || (sourceKind === "MUX" && !file)) {
       setError(t("requiredField"))
       return
     }
 
     try {
-      setStage("uploading")
-      setProgress(2)
-      const grant = await requestMediaUpload(file)
-      await uploadMediaSource(grant, file, (percentage) =>
-        setProgress(Math.max(2, Math.round(percentage * 0.75)))
-      )
-      setStage("ingesting")
-      setProgress(82)
-      await startMediaIngest(grant.mediaId)
+      let mediaId: string
+      if (sourceKind === "STATIC_HLS") {
+        setStage("registering")
+        setProgress(45)
+        const registered = await registerStaticHls({
+          manifestPath: manifestPath.trim(),
+          durationSeconds,
+          encodingVersion: encodingVersion.trim(),
+          checksumSha256: checksumSha256.trim() || undefined,
+          captions: [
+            englishCaptionPath.trim()
+              ? {
+                  language: "en",
+                  label: "English",
+                  path: englishCaptionPath.trim(),
+                  defaultTrack: false,
+                }
+              : null,
+            arabicCaptionPath.trim()
+              ? {
+                  language: "ar",
+                  label: "العربية",
+                  path: arabicCaptionPath.trim(),
+                  defaultTrack: false,
+                }
+              : null,
+          ].filter((caption) => caption !== null),
+        })
+        mediaId = registered.mediaId
+      } else {
+        setStage("uploading")
+        setProgress(2)
+        const grant = await requestMediaUpload(file!)
+        await uploadMediaSource(grant, file!, (percentage) =>
+          setProgress(Math.max(2, Math.round(percentage * 0.75)))
+        )
+        setStage("ingesting")
+        setProgress(82)
+        await startMediaIngest(grant.mediaId)
+        mediaId = grant.mediaId
+      }
       setStage("attaching")
       setProgress(94)
       const saved = await addContentUnit(content.id, {
         title: title.trim(),
         slug,
         position,
-        mediaId: grant.mediaId,
+        mediaId,
       })
       onSaved(saved)
       setStage("done")
       setProgress(100)
       setFile(null)
+      setManifestPath("")
+      setEncodingVersion("")
+      setChecksumSha256("")
+      setEnglishCaptionPath("")
+      setArabicCaptionPath("")
       setTitle("")
       setSlug("")
       setSlugEdited(false)
@@ -846,9 +903,11 @@ function MediaWorkflow({
       ? t("uploadingVideo")
       : stage === "ingesting"
         ? t("submittingVideo")
-        : stage === "attaching"
-          ? t("attachingLesson")
-          : t("videoAttached")
+        : stage === "registering"
+          ? t("validatingHls")
+          : stage === "attaching"
+            ? t("attachingLesson")
+            : t("videoAttached")
 
   return (
     <DialogContent className="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-2xl">
@@ -903,15 +962,131 @@ function MediaWorkflow({
         <form onSubmit={submit} className="flex flex-col gap-5">
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="lesson-video">{t("videoFile")}</FieldLabel>
-              <Input
-                id="lesson-video"
-                type="file"
-                accept="video/*"
+              <FieldLabel id="media-source-label">
+                {t("mediaSource")}
+              </FieldLabel>
+              <ToggleGroup
+                aria-labelledby="media-source-label"
+                value={[sourceKind]}
+                onValueChange={(next) =>
+                  setSourceKind((next[0] ?? sourceKind) as MediaSourceKind)
+                }
+                variant="selection"
                 disabled={busy}
-                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-              />
+              >
+                <ToggleGroupItem type="button" value="STATIC_HLS">
+                  {t("staticHlsPackage")}
+                </ToggleGroupItem>
+                <ToggleGroupItem type="button" value="MUX">
+                  {t("muxUpload")}
+                </ToggleGroupItem>
+              </ToggleGroup>
             </Field>
+            {sourceKind === "MUX" ? (
+              <Field>
+                <FieldLabel htmlFor="lesson-video">{t("videoFile")}</FieldLabel>
+                <Input
+                  id="lesson-video"
+                  type="file"
+                  accept="video/*"
+                  disabled={busy}
+                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                />
+              </Field>
+            ) : (
+              <div className="flex flex-col gap-4 border bg-muted/30 p-4">
+                <Field>
+                  <FieldLabel htmlFor="hls-manifest-path">
+                    {t("manifestPath")}
+                  </FieldLabel>
+                  <Input
+                    id="hls-manifest-path"
+                    dir="ltr"
+                    placeholder="pilots/course/v1/master.m3u8"
+                    value={manifestPath}
+                    disabled={busy}
+                    onChange={(event) => setManifestPath(event.target.value)}
+                  />
+                </Field>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field>
+                    <FieldLabel htmlFor="hls-duration">
+                      {t("durationSeconds")}
+                    </FieldLabel>
+                    <Input
+                      id="hls-duration"
+                      type="number"
+                      min={1}
+                      value={durationSeconds}
+                      disabled={busy}
+                      onChange={(event) =>
+                        setDurationSeconds(Number(event.target.value))
+                      }
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="hls-encoding-version">
+                      {t("encodingVersion")}
+                    </FieldLabel>
+                    <Input
+                      id="hls-encoding-version"
+                      dir="ltr"
+                      placeholder="2026-08-17-v3"
+                      value={encodingVersion}
+                      disabled={busy}
+                      onChange={(event) =>
+                        setEncodingVersion(event.target.value)
+                      }
+                    />
+                  </Field>
+                </div>
+                <Field>
+                  <FieldLabel htmlFor="hls-checksum">
+                    {t("packageChecksum")}
+                  </FieldLabel>
+                  <Input
+                    id="hls-checksum"
+                    dir="ltr"
+                    placeholder={t("optional")}
+                    value={checksumSha256}
+                    disabled={busy}
+                    onChange={(event) => setChecksumSha256(event.target.value)}
+                  />
+                </Field>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field>
+                    <FieldLabel htmlFor="hls-captions-en">
+                      {t("englishCaptions")}
+                    </FieldLabel>
+                    <Input
+                      id="hls-captions-en"
+                      dir="ltr"
+                      placeholder={t("optionalVttPath")}
+                      value={englishCaptionPath}
+                      disabled={busy}
+                      onChange={(event) =>
+                        setEnglishCaptionPath(event.target.value)
+                      }
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="hls-captions-ar">
+                      {t("arabicCaptions")}
+                    </FieldLabel>
+                    <Input
+                      id="hls-captions-ar"
+                      dir="ltr"
+                      placeholder={t("optionalVttPath")}
+                      value={arabicCaptionPath}
+                      disabled={busy}
+                      onChange={(event) =>
+                        setArabicCaptionPath(event.target.value)
+                      }
+                    />
+                  </Field>
+                </div>
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
               <Field>
                 <FieldLabel htmlFor="lesson-title">
@@ -992,7 +1167,9 @@ function MediaWorkflow({
             </DialogClose>
             <Button type="submit" disabled={busy}>
               <UploadSimpleIcon data-icon="inline-start" />
-              {t("uploadAndAttach")}
+              {sourceKind === "STATIC_HLS"
+                ? t("registerAndAttach")
+                : t("uploadAndAttach")}
             </Button>
           </DialogFooter>
         </form>

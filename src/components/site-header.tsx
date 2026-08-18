@@ -1,3 +1,4 @@
+import * as React from "react"
 import { Link, useRouterState } from "@tanstack/react-router"
 import { ListIcon } from "@phosphor-icons/react"
 
@@ -19,7 +20,16 @@ export function SiteHeader() {
   const { locale, t } = useLocale()
   const alternateLocale = locale === "en" ? "ar" : "en"
   const location = useRouterState({ select: (state) => state.location })
-  const alternateHref = `${withLocale(location.pathname, alternateLocale)}${location.searchStr}${location.hash}`
+  const [hasHydrated, setHasHydrated] = React.useState(false)
+
+  React.useEffect(() => {
+    setHasHydrated(true)
+  }, [])
+
+  // URL fragments never reach the server. Add the client-only fragment after
+  // hydration so the initial href matches, and prefix TanStack's bare hash.
+  const hash = hasHydrated && location.hash ? `#${location.hash}` : ""
+  const alternateHref = `${withLocale(location.pathname, alternateLocale)}${location.searchStr}${hash}`
   const navigation = [{ label: t("catalog"), to: "/$locale/catalog" as const }]
 
   return (

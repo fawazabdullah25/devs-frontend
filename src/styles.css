@@ -3,6 +3,8 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/alexandria";
 @import "@fontsource-variable/jetbrains-mono";
+@import "@vidstack/react/player/styles/default/theme.css";
+@import "@vidstack/react/player/styles/default/layouts/video.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -148,15 +150,31 @@
 @layer utilities {
   .brand-grid {
     background-image:
-      linear-gradient(to right, color-mix(in srgb, var(--foreground) 5%, transparent) 1px, transparent 1px),
-      linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 5%, transparent) 1px, transparent 1px);
+      linear-gradient(
+        to right,
+        color-mix(in srgb, var(--foreground) 5%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--foreground) 5%, transparent) 1px,
+        transparent 1px
+      );
     background-size: 42px 42px;
   }
 
   .brand-glow {
     background:
-      radial-gradient(circle at 18% 10%, color-mix(in srgb, #15bb81 25%, transparent), transparent 32rem),
-      radial-gradient(circle at 86% 8%, color-mix(in srgb, #8addc0 14%, transparent), transparent 26rem);
+      radial-gradient(
+        circle at 18% 10%,
+        color-mix(in srgb, #15bb81 25%, transparent),
+        transparent 32rem
+      ),
+      radial-gradient(
+        circle at 86% 8%,
+        color-mix(in srgb, #8addc0 14%, transparent),
+        transparent 26rem
+      );
   }
 
   .content-shell {
@@ -165,6 +183,11 @@
 
   .text-pretty {
     text-wrap: pretty;
+  }
+
+  .devs-media-player {
+    --media-brand: var(--primary);
+    --media-focus-ring-color: var(--ring);
   }
 }
 

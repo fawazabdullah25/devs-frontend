@@ -36,8 +36,17 @@ export interface MediaAsset {
   status: MediaStatus
   durationSeconds: number
   playbackId?: string
+  playbackUrl?: string
   playbackToken?: string
-  provider: "MUX" | "LOCAL"
+  provider: "MUX" | "STATIC_HLS" | "LOCAL"
+  captions: CaptionTrack[]
+}
+
+export interface CaptionTrack {
+  language: string
+  label: string
+  url: string
+  defaultTrack: boolean
 }
 
 export interface ContentUnit {
@@ -115,10 +124,26 @@ export interface UploadGrant {
 export interface MediaProcessingStatus {
   mediaId: string
   status: MediaStatus
+  provider?: MediaAsset["provider"]
   providerAssetId?: string
   playbackId?: string
+  playbackUrl?: string
   durationSeconds: number
+  captions?: CaptionTrack[]
   errorMessage?: string
+}
+
+export interface StaticHlsInput {
+  manifestPath: string
+  durationSeconds: number
+  checksumSha256?: string
+  encodingVersion: string
+  captions: Array<{
+    language: string
+    label: string
+    path: string
+    defaultTrack: boolean
+  }>
 }
 
 export interface UnitInput {
