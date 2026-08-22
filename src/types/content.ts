@@ -49,6 +49,20 @@ export interface CaptionTrack {
   defaultTrack: boolean
 }
 
+export interface Attachment {
+  id: string
+  titleEn: string
+  titleAr?: string
+  filename: string
+  contentType: string
+  contentLength: number
+  position: number
+  url?: string
+  status: "UPLOADING" | "READY" | "DELETED"
+  deletedAt?: string
+  purgeAfter?: string
+}
+
 export interface ContentUnit {
   id: string
   slug: string
@@ -56,6 +70,7 @@ export interface ContentUnit {
   title: LocalizedText
   summary?: LocalizedText
   media: MediaAsset
+  attachments?: Attachment[]
 }
 
 export interface LearningContent {
@@ -115,6 +130,14 @@ export interface AdminSummary {
 
 export interface UploadGrant {
   mediaId: string
+  uploadUrl: string
+  objectKey: string
+  headers: Record<string, string>
+  expiresAt: string
+}
+
+export interface AttachmentUploadGrant {
+  attachment: Attachment
   uploadUrl: string
   objectKey: string
   headers: Record<string, string>

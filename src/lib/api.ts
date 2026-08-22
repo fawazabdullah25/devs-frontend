@@ -11,10 +11,15 @@ import type {
   StaticHlsInput,
   UnitInput,
   UploadGrant,
+  Attachment,
+  AttachmentUploadGrant,
 } from "@/types/content"
 
 const apiUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, "")
-const useMocks = import.meta.env.VITE_USE_MOCKS === "true" || !apiUrl
+const useMocks =
+  import.meta.env.MODE === "test" ||
+  import.meta.env.VITE_USE_MOCKS === "true" ||
+  !apiUrl
 const mockAdminContent = [...mockContent]
 const mockMedia = new Map<string, MediaAsset>()
 
@@ -26,6 +31,182 @@ export class ApiError extends Error {
     this.name = "ApiError"
     this.status = status
   }
+}
+
+export async function requestAttachmentUpload(
+  unitId: string,
+  file: File,
+  title: string,
+  titleAr?: string
+): Promise<AttachmentUploadGrant> {
+  if (!useMocks) {
+    return apiFetch<AttachmentUploadGrant>(
+      `/admin/units/${encodeURIComponent(unitId)}/attachments/uploads`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          title,
+          titleAr: titleAr || undefined,
+          filename: file.name,
+          contentType: file.type || "application/octet-stream",
+          contentLength: file.size,
+        }),
+      }
+    )
+  }
+  const attachment: Attachment = {
+    id: `attachment-${crypto.randomUUID()}`,
+    titleEn: title,
+    titleAr: titleAr || undefined,
+    filename: file.name,
+    contentType: file.type || "application/octet-stream",
+    contentLength: file.size,
+    position: 1,
+    status: "UPLOADING",
+  }
+  return {
+    attachment,
+    uploadUrl: "mock://attachment-upload",
+    objectKey: `attachments/${unitId}/${attachment.id}/${file.name}`,
+    headers: { "Content-Type": attachment.contentType },
+    expiresAt: new Date(Date.now() + 20 * 60_000).toISOString(),
+  }
+}
+
+export async function uploadAttachment(
+  grant: AttachmentUploadGrant,
+  file: File,
+  onProgress: (percentage: number) => void
+): Promise<void> {
+  if (useMocks) {
+    for (const percentage of [20, 55, 85, 100]) {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      onProgress(percentage)
+    }
+    return
+  }
+  await uploadFile(grant.uploadUrl, grant.headers, file, onProgress)
+}
+
+export async function completeAttachment(
+  unitId: string,
+  attachment: Attachment
+): Promise<Attachment> {
+  if (!useMocks) {
+    return apiFetch<Attachment>(
+      `/admin/units/${encodeURIComponent(unitId)}/attachments/${encodeURIComponent(attachment.id)}/complete`,
+      { method: "POST" }
+    )
+  }
+  return {
+    ...attachment,
+    status: "READY",
+    url: URL.createObjectURL(new Blob()),
+  }
+}
+
+export async function deleteAttachment(
+  unitId: string,
+  attachmentId: string
+): Promise<void> {
+  if (useMocks) return
+  await apiFetch<void>(
+    `/admin/units/${encodeURIComponent(unitId)}/attachments/${encodeURIComponent(attachmentId)}`,
+    { method: "DELETE" }
+  )
+}
+
+export async function restoreAttachment(
+  unitId: string,
+  attachmentId: string,
+  fallback?: Attachment
+): Promise<Attachment> {
+  if (!useMocks) {
+    return apiFetch<Attachment>(
+      `/admin/units/${encodeURIComponent(unitId)}/attachments/${encodeURIComponent(attachmentId)}/restore`,
+      { method: "POST" }
+    )
+  }
+  if (!fallback) throw new Error("Mock restoration requires attachment data")
+  return {
+    ...fallback,
+    status: "READY",
+    deletedAt: undefined,
+    purgeAfter: undefined,
+  }
+}
+
+export async function getDeletedAttachments(
+  unitId: string
+): Promise<Attachment[]> {
+  if (useMocks) return []
+  return apiFetch<Attachment[]>(
+    `/admin/units/${encodeURIComponent(unitId)}/attachments/deleted`
+  )
+}
+
+export async function updateAttachment(
+  unitId: string,
+  attachment: Attachment,
+  title: string,
+  titleAr: string | undefined,
+  position = attachment.position
+): Promise<Attachment> {
+  if (!useMocks) {
+    return apiFetch<Attachment>(
+      `/admin/units/${encodeURIComponent(unitId)}/attachments/${encodeURIComponent(attachment.id)}`,
+      { method: "PATCH", body: JSON.stringify({ title, titleAr, position }) }
+    )
+  }
+  return { ...attachment, titleEn: title, titleAr, position }
+}
+
+export async function reorderAttachments(
+  unitId: string,
+  attachments: Attachment[]
+): Promise<Attachment[]> {
+  if (!useMocks) {
+    return apiFetch<Attachment[]>(
+      `/admin/units/${encodeURIComponent(unitId)}/attachments/order`,
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          attachmentIds: attachments.map((item) => item.id),
+        }),
+      }
+    )
+  }
+  return attachments.map((attachment, index) => ({
+    ...attachment,
+    position: index + 1,
+  }))
+}
+
+async function uploadFile(
+  url: string,
+  headers: Record<string, string>,
+  file: File,
+  onProgress: (percentage: number) => void
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const request = new XMLHttpRequest()
+    request.open("PUT", url)
+    Object.entries(headers).forEach(([name, value]) =>
+      request.setRequestHeader(name, value)
+    )
+    request.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable)
+        onProgress(Math.round((event.loaded / event.total) * 100))
+    })
+    request.addEventListener("load", () => {
+      if (request.status >= 200 && request.status < 300) resolve()
+      else reject(new ApiError(request.status, "The file upload failed"))
+    })
+    request.addEventListener("error", () =>
+      reject(new Error("The upload could not reach object storage"))
+    )
+    request.send(file)
+  })
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -51,6 +232,8 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
         `Devs API request failed (${response.status})`
     )
   }
+
+  if (response.status === 204) return undefined as T
 
   return response.json() as Promise<T>
 }

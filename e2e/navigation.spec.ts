@@ -114,6 +114,9 @@ test("public navigation and course metadata avoid redundant labels", async ({
   await expect(page.getByText("1 Lesson", { exact: true })).toHaveCount(0)
   await expect(page.getByText("Arabic", { exact: true })).toBeVisible()
   await expect(page.getByRole("button", { name: "Start course" })).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "Attachments · none" })
+  ).toBeDisabled()
 })
 
 test("featured carousel advances automatically and loops manually", async ({

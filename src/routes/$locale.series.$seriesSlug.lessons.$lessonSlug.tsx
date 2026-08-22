@@ -8,6 +8,7 @@ import {
 import { Link, createFileRoute, notFound } from "@tanstack/react-router"
 
 import { VideoPlayer } from "@/components/video-player"
+import { AttachmentsSection } from "@/components/attachments-section"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -88,6 +89,10 @@ function LessonPage() {
                 {localize(unit.summary, locale)}
               </p>
             )}
+          </div>
+
+          <div className="mt-6">
+            <AttachmentsSection attachments={unit.attachments} />
           </div>
 
           <Separator className="my-8" />

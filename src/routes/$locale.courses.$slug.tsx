@@ -2,6 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router"
 
 import { AboutContent, ContentDetailHero } from "@/components/content-detail"
 import { VideoPlayer } from "@/components/video-player"
+import { AttachmentsSection } from "@/components/attachments-section"
 import { getContent } from "@/lib/api"
 import { useLocale } from "@/lib/locale-context"
 import { localize } from "@/types/content"
@@ -34,6 +35,9 @@ function CoursePage() {
             </h2>
           </div>
           <VideoPlayer unit={unit} title={localize(content.title, locale)} />
+          <div className="mt-6">
+            <AttachmentsSection attachments={unit.attachments} />
+          </div>
         </section>
         <AboutContent content={content} />
       </div>

@@ -1,6 +1,10 @@
-node_modules
-.output
-dist
 .git
-.env*
-npm-debug.log*
+.github
+.output
+node_modules
+test-results
+playwright-report
+.env
+.env.*
+!.env.example
+*.log

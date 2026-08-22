@@ -94,6 +94,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toast"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import { AttachmentManager } from "@/components/attachment-manager"
+import {
   addContentUnit,
   archiveContent,
   createDraft,
@@ -919,33 +926,47 @@ function MediaWorkflow({
       <section className="flex flex-col gap-3">
         <h3 className="text-sm font-semibold">{t("currentLessons")}</h3>
         {content.units.length ? (
-          <div className="flex flex-col gap-2">
+          <Accordion className="border px-3">
             {content.units.map((unit) => (
-              <div
-                key={unit.id}
-                className="flex items-center gap-3 border bg-muted/30 p-3"
-              >
-                <span className="flex size-8 shrink-0 items-center justify-center bg-primary/10 text-sm font-semibold text-primary tabular-nums">
-                  {unit.position}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">
-                    {localize(unit.title, locale)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {unit.media.status}
-                  </p>
-                </div>
-                <Badge
-                  variant={
-                    unit.media.status === "READY" ? "default" : "secondary"
-                  }
-                >
-                  {unit.media.status}
-                </Badge>
-              </div>
+              <AccordionItem key={unit.id} value={unit.id}>
+                <AccordionTrigger className="items-center py-3 no-underline hover:no-underline">
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex size-8 shrink-0 items-center justify-center bg-primary/10 text-sm font-semibold text-primary tabular-nums">
+                      {unit.position}
+                    </span>
+                    <span className="truncate text-sm font-medium">
+                      {localize(unit.title, locale)}
+                    </span>
+                    <Badge
+                      variant={
+                        unit.media.status === "READY" ? "default" : "secondary"
+                      }
+                    >
+                      {unit.media.status}
+                    </Badge>
+                    <Badge variant="outline">
+                      {(unit.attachments ?? []).length} {t("attachments")}
+                    </Badge>
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <AttachmentManager
+                    unit={unit}
+                    onChange={(attachments) =>
+                      onSaved({
+                        ...content,
+                        units: content.units.map((candidate) =>
+                          candidate.id === unit.id
+                            ? { ...candidate, attachments }
+                            : candidate
+                        ),
+                      })
+                    }
+                  />
+                </AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
+          </Accordion>
         ) : (
           <p className="text-sm text-muted-foreground">{t("noLessons")}</p>
         )}
