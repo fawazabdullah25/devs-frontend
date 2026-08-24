@@ -13,6 +13,7 @@ import type {
   UploadGrant,
   Attachment,
   AttachmentUploadGrant,
+  CurriculumInput,
 } from "@/types/content"
 
 const apiUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, "")
@@ -383,6 +384,7 @@ export async function createDraft(input: {
     level: levels[0],
     topics: [],
     instructors: [],
+    sections: [],
     units: [],
     views: 0,
     watchedMinutes: 0,
@@ -569,6 +571,7 @@ export async function addContentUnit(
     id: `unit-${crypto.randomUUID()}`,
     slug: input.slug,
     position: input.position,
+    sectionId: input.sectionId,
     title: { en: input.title, ar: input.titleAr },
     summary: input.summary
       ? { en: input.summary, ar: input.summaryAr }
@@ -588,6 +591,49 @@ export async function addContentUnit(
       (left, right) => left.position - right.position
     ),
   }
+  mockAdminContent.splice(mockAdminContent.indexOf(existing), 1, updated)
+  return updated
+}
+
+export async function replaceCurriculum(
+  contentId: string,
+  input: CurriculumInput
+): Promise<LearningContent> {
+  if (!useMocks) {
+    return apiFetch<LearningContent>(
+      `/admin/content/${encodeURIComponent(contentId)}/curriculum`,
+      { method: "PUT", body: JSON.stringify(input) }
+    )
+  }
+  const existing = mockAdminContent.find((item) => item.id === contentId)
+  if (!existing) throw new Error("Content not found")
+  if (existing.kind !== "SERIES") throw new Error("Only series have sections")
+
+  const sections = input.sections.map((section, index) => ({
+    id: section.id ?? `section-${crypto.randomUUID()}`,
+    position: index + 1,
+    title: { en: section.title, ar: section.titleAr },
+    description: section.description
+      ? { en: section.description, ar: section.descriptionAr }
+      : undefined,
+  }))
+  const sectionIdsByUnit = new Map<string, string>()
+  input.sections.forEach((section, index) =>
+    section.unitIds.forEach((unitId) =>
+      sectionIdsByUnit.set(unitId, sections[index].id)
+    )
+  )
+  const orderedIds = [
+    ...input.sections.flatMap((section) => section.unitIds),
+    ...input.unsectionedUnitIds,
+  ]
+  const unitsById = new Map(existing.units.map((unit) => [unit.id, unit]))
+  const units = orderedIds.map((id, index) => ({
+    ...unitsById.get(id)!,
+    position: index + 1,
+    sectionId: sectionIdsByUnit.get(id),
+  }))
+  const updated = { ...existing, sections, units }
   mockAdminContent.splice(mockAdminContent.indexOf(existing), 1, updated)
   return updated
 }

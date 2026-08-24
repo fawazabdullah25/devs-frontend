@@ -1,19 +1,10 @@
-import { ArrowRightIcon, ClockIcon, PlayIcon } from "@phosphor-icons/react"
-import { Link, createFileRoute, notFound } from "@tanstack/react-router"
+import { createFileRoute, notFound } from "@tanstack/react-router"
 
 import { AboutContent, ContentDetailHero } from "@/components/content-detail"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { SeriesCurriculum } from "@/components/series-curriculum"
 import { getContent } from "@/lib/api"
+import { orderedSeriesUnits } from "@/lib/curriculum"
 import { useLocale } from "@/lib/locale-context"
-import { formatDuration, localize } from "@/types/content"
 
 export const Route = createFileRoute("/$locale/series/$slug")({
   loader: async ({ params }) => {
@@ -27,7 +18,7 @@ export const Route = createFileRoute("/$locale/series/$slug")({
 function SeriesPage() {
   const content = Route.useLoaderData()
   const { locale, t } = useLocale()
-  const firstLesson = content.units[0]
+  const firstLesson = orderedSeriesUnits(content)[0]
   const firstHref = `/${locale}/series/${content.slug}/lessons/${firstLesson.slug}`
 
   return (
@@ -43,52 +34,7 @@ function SeriesPage() {
               {t("curriculum")}
             </h2>
           </div>
-          <div className="grid gap-3">
-            {content.units.map((unit) => (
-              <Card key={unit.id} className="sm:flex-row sm:items-center">
-                <CardHeader className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline">
-                      {t("lessonNumber")} {unit.position}
-                    </Badge>
-                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <ClockIcon aria-hidden="true" />
-                      {formatDuration(unit.media.durationSeconds)}
-                    </span>
-                  </div>
-                  <CardTitle>{localize(unit.title, locale)}</CardTitle>
-                  {unit.summary && (
-                    <CardDescription>
-                      {localize(unit.summary, locale)}
-                    </CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent className="sm:ps-0 sm:pe-6">
-                  <Button
-                    variant={unit.position === 1 ? "default" : "outline"}
-                    render={
-                      <Link
-                        to="/$locale/series/$seriesSlug/lessons/$lessonSlug"
-                        params={{
-                          locale,
-                          seriesSlug: content.slug,
-                          lessonSlug: unit.slug,
-                        }}
-                      />
-                    }
-                    nativeButton={false}
-                  >
-                    <PlayIcon data-icon="inline-start" />
-                    {t("watchNow")}
-                    <ArrowRightIcon
-                      data-icon="inline-end"
-                      className="rtl:rotate-180"
-                    />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <SeriesCurriculum content={content} />
         </section>
         <AboutContent content={content} />
       </div>

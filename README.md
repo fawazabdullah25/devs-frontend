@@ -6,6 +6,7 @@ The bilingual web experience for **KStack Devs**, KStack's free practical learni
 
 - Responsive Arabic and English learning experience with RTL support
 - Free course and multi-lesson series discovery
+- Optional bilingual sections for organizing longer series
 - Adaptive HLS playback, captions, seeking, and playback-speed controls
 - Per-lesson PDF, resource, source-code, and image attachments
 - Admin content, publication, HLS registration, and direct R2 upload workflows
@@ -69,6 +70,14 @@ Learners see attachments directly beneath the relevant video. A course uses its 
 Admins expand a lesson in the media workspace, enter English and optional Arabic titles, and select an accepted file. The browser uploads directly to R2 with the backend's signed URL and reports progress. The frontend never receives R2 credentials and never sends attachment bytes through Spring Boot.
 
 Deleted attachments disappear publicly immediately and can be restored during the backend's seven-day retention period.
+
+## 🗂️ Series curricula
+
+Series can stay as a simple flat lesson list or use one level of bilingual sections. Sectioned series show an expandable curriculum on the public landing page, hierarchical lesson numbers such as `2.1`, and the current section in the lesson sidebar. Progress and previous/next navigation still follow one continuous lesson order across section boundaries.
+
+Admins open **Manage curriculum** from a series action menu. The dedicated organizer supports creating, editing, reordering, and deleting sections; moving and reordering lessons; and moving all unsectioned lessons into a section. Changes stay local until **Save curriculum** is pressed, and leaving with unsaved work requires confirmation. Deleting a section never deletes its lessons—it moves them to **Unsectioned**.
+
+Published sectioned series must keep every lesson assigned and every section non-empty. New videos added to one of these series require a destination section. Flat series remain fully supported.
 
 ## 🎨 Design system
 

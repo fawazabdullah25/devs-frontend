@@ -16,6 +16,7 @@ import { Route as LocaleAdminRouteImport } from './routes/$locale.admin'
 import { Route as LocaleCatalogRouteImport } from './routes/$locale.catalog'
 import { Route as LocaleCoursesSlugRouteImport } from './routes/$locale.courses.$slug'
 import { Route as LocaleSeriesSlugRouteImport } from './routes/$locale.series.$slug'
+import { Route as LocaleAdminContentContentIdCurriculumRouteImport } from './routes/$locale.admin_.content.$contentId.curriculum'
 import { Route as LocaleSeriesSeriesSlugLessonsLessonSlugRouteImport } from './routes/$locale.series.$seriesSlug.lessons.$lessonSlug'
 
 const IndexRoute = IndexRouteImport.update({
@@ -53,6 +54,12 @@ const LocaleSeriesSlugRoute = LocaleSeriesSlugRouteImport.update({
   path: '/series/$slug',
   getParentRoute: () => LocaleRoute,
 } as any)
+const LocaleAdminContentContentIdCurriculumRoute =
+  LocaleAdminContentContentIdCurriculumRouteImport.update({
+    id: '/admin_/content/$contentId/curriculum',
+    path: '/admin/content/$contentId/curriculum',
+    getParentRoute: () => LocaleRoute,
+  } as any)
 const LocaleSeriesSeriesSlugLessonsLessonSlugRoute =
   LocaleSeriesSeriesSlugLessonsLessonSlugRouteImport.update({
     id: '/series/$seriesSlug/lessons/$lessonSlug',
@@ -68,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/$locale/': typeof LocaleIndexRoute
   '/$locale/courses/$slug': typeof LocaleCoursesSlugRoute
   '/$locale/series/$slug': typeof LocaleSeriesSlugRoute
+  '/$locale/admin/content/$contentId/curriculum': typeof LocaleAdminContentContentIdCurriculumRoute
   '/$locale/series/$seriesSlug/lessons/$lessonSlug': typeof LocaleSeriesSeriesSlugLessonsLessonSlugRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +85,7 @@ export interface FileRoutesByTo {
   '/$locale': typeof LocaleIndexRoute
   '/$locale/courses/$slug': typeof LocaleCoursesSlugRoute
   '/$locale/series/$slug': typeof LocaleSeriesSlugRoute
+  '/$locale/admin/content/$contentId/curriculum': typeof LocaleAdminContentContentIdCurriculumRoute
   '/$locale/series/$seriesSlug/lessons/$lessonSlug': typeof LocaleSeriesSeriesSlugLessonsLessonSlugRoute
 }
 export interface FileRoutesById {
@@ -88,6 +97,7 @@ export interface FileRoutesById {
   '/$locale/': typeof LocaleIndexRoute
   '/$locale/courses/$slug': typeof LocaleCoursesSlugRoute
   '/$locale/series/$slug': typeof LocaleSeriesSlugRoute
+  '/$locale/admin_/content/$contentId/curriculum': typeof LocaleAdminContentContentIdCurriculumRoute
   '/$locale/series/$seriesSlug/lessons/$lessonSlug': typeof LocaleSeriesSeriesSlugLessonsLessonSlugRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/$locale/'
     | '/$locale/courses/$slug'
     | '/$locale/series/$slug'
+    | '/$locale/admin/content/$contentId/curriculum'
     | '/$locale/series/$seriesSlug/lessons/$lessonSlug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -109,6 +120,7 @@ export interface FileRouteTypes {
     | '/$locale'
     | '/$locale/courses/$slug'
     | '/$locale/series/$slug'
+    | '/$locale/admin/content/$contentId/curriculum'
     | '/$locale/series/$seriesSlug/lessons/$lessonSlug'
   id:
     | '__root__'
@@ -119,6 +131,7 @@ export interface FileRouteTypes {
     | '/$locale/'
     | '/$locale/courses/$slug'
     | '/$locale/series/$slug'
+    | '/$locale/admin_/content/$contentId/curriculum'
     | '/$locale/series/$seriesSlug/lessons/$lessonSlug'
   fileRoutesById: FileRoutesById
 }
@@ -178,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleSeriesSlugRouteImport
       parentRoute: typeof LocaleRoute
     }
+    '/$locale/admin_/content/$contentId/curriculum': {
+      id: '/$locale/admin_/content/$contentId/curriculum'
+      path: '/admin/content/$contentId/curriculum'
+      fullPath: '/$locale/admin/content/$contentId/curriculum'
+      preLoaderRoute: typeof LocaleAdminContentContentIdCurriculumRouteImport
+      parentRoute: typeof LocaleRoute
+    }
     '/$locale/series/$seriesSlug/lessons/$lessonSlug': {
       id: '/$locale/series/$seriesSlug/lessons/$lessonSlug'
       path: '/series/$seriesSlug/lessons/$lessonSlug'
@@ -194,6 +214,7 @@ interface LocaleRouteChildren {
   LocaleIndexRoute: typeof LocaleIndexRoute
   LocaleCoursesSlugRoute: typeof LocaleCoursesSlugRoute
   LocaleSeriesSlugRoute: typeof LocaleSeriesSlugRoute
+  LocaleAdminContentContentIdCurriculumRoute: typeof LocaleAdminContentContentIdCurriculumRoute
   LocaleSeriesSeriesSlugLessonsLessonSlugRoute: typeof LocaleSeriesSeriesSlugLessonsLessonSlugRoute
 }
 
@@ -203,6 +224,8 @@ const LocaleRouteChildren: LocaleRouteChildren = {
   LocaleIndexRoute: LocaleIndexRoute,
   LocaleCoursesSlugRoute: LocaleCoursesSlugRoute,
   LocaleSeriesSlugRoute: LocaleSeriesSlugRoute,
+  LocaleAdminContentContentIdCurriculumRoute:
+    LocaleAdminContentContentIdCurriculumRoute,
   LocaleSeriesSeriesSlugLessonsLessonSlugRoute:
     LocaleSeriesSeriesSlugLessonsLessonSlugRoute,
 }

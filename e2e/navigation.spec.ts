@@ -70,6 +70,7 @@ test("admin media workflow exposes static HLS and legacy Mux inputs", async ({
   await expect(dialog.getByLabel("Relative master playlist path")).toBeVisible()
   await expect(dialog.getByLabel("English captions")).toBeVisible()
   await expect(dialog.getByLabel("Arabic captions")).toBeVisible()
+  await expect(dialog.getByLabel("Destination section")).toBeVisible()
 
   await dialog.getByRole("button", { name: "Mux upload" }).click()
   await expect(dialog.getByLabel("Video file")).toBeVisible()
@@ -141,4 +142,44 @@ test("featured carousel advances automatically and loops manually", async ({
   await next.click()
   await expect(previous).toBeEnabled()
   await expect(next).toBeEnabled()
+})
+
+test("sectioned series expose grouped curriculum and hierarchical lessons", async ({
+  page,
+}) => {
+  await page.goto("/en/series/web-foundations")
+
+  await expect(
+    page.getByText("The foundations", { exact: true }).first()
+  ).toBeVisible()
+  await expect(
+    page.getByText("A resilient experience", { exact: true })
+  ).toBeVisible()
+  await expect(page.getByText("Lesson 1.1", { exact: true })).toBeVisible()
+
+  await page.goto("/en/series/web-foundations/lessons/responsive-layouts")
+  await expect(page.getByText("Lesson 2.1", { exact: true })).toBeVisible()
+  await expect(page.getByText("3 / 4", { exact: true })).toBeVisible()
+})
+
+test("admin curriculum editor organizes sections without drag and drop", async ({
+  page,
+}) => {
+  await page.goto("/en/admin/content/content-web-foundations/curriculum")
+
+  await expect(
+    page.getByRole("heading", { name: "Organize curriculum" })
+  ).toBeVisible({ timeout: 15_000 })
+  await expect(
+    page.getByText("The foundations", { exact: true }).first()
+  ).toBeVisible()
+  await expect(page.getByText("1.1", { exact: true })).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "Save curriculum" })
+  ).toBeDisabled()
+
+  await page.getByRole("button", { name: "Move down" }).first().click()
+  await expect(
+    page.getByRole("button", { name: "Save curriculum" })
+  ).toBeEnabled()
 })

@@ -60,11 +60,13 @@ const lesson = (
   position: number,
   en: string,
   ar: string,
-  durationSeconds: number
+  durationSeconds: number,
+  sectionId?: string
 ) => ({
   id,
   slug,
   position,
+  sectionId,
   title: { en, ar },
   media: {
     id: `media-${id}`,
@@ -95,6 +97,26 @@ export const mockContent: LearningContent[] = [
     level: levels[0],
     topics: [topics[0]],
     instructors: [instructors[0]],
+    sections: [
+      {
+        id: "section-web-foundations",
+        position: 1,
+        title: { en: "The foundations", ar: "الأساسيات" },
+        description: {
+          en: "Start with meaningful structure and a maintainable visual system.",
+          ar: "ابدأ ببنية واضحة ونظام مرئي سهل الصيانة.",
+        },
+      },
+      {
+        id: "section-web-experience",
+        position: 2,
+        title: { en: "A resilient experience", ar: "تجربة متينة" },
+        description: {
+          en: "Make the interface responsive and accessible across devices.",
+          ar: "اجعل الواجهة متجاوبة ومتاحة عبر مختلف الأجهزة.",
+        },
+      },
+    ],
     units: [
       lesson(
         "html",
@@ -102,16 +124,26 @@ export const mockContent: LearningContent[] = [
         1,
         "Semantic HTML",
         "HTML الدلالية",
-        2560
+        2560,
+        "section-web-foundations"
       ),
-      lesson("css", "modern-css", 2, "Modern CSS", "CSS الحديثة", 3120),
+      lesson(
+        "css",
+        "modern-css",
+        2,
+        "Modern CSS",
+        "CSS الحديثة",
+        3120,
+        "section-web-foundations"
+      ),
       lesson(
         "responsive",
         "responsive-layouts",
         3,
         "Responsive layouts",
         "التصميم المتجاوب",
-        2840
+        2840,
+        "section-web-experience"
       ),
       lesson(
         "a11y",
@@ -119,7 +151,8 @@ export const mockContent: LearningContent[] = [
         4,
         "Accessibility that matters",
         "إمكانية الوصول",
-        2280
+        2280,
+        "section-web-experience"
       ),
     ],
     featuredRank: 1,
@@ -146,6 +179,7 @@ export const mockContent: LearningContent[] = [
     level: levels[1],
     topics: [topics[1]],
     instructors: [instructors[1]],
+    sections: [],
     units: [
       lesson(
         "spring-mental",
@@ -196,6 +230,7 @@ export const mockContent: LearningContent[] = [
     level: levels[0],
     topics: [topics[2]],
     instructors: [instructors[0], instructors[1]],
+    sections: [],
     units: [
       lesson(
         "git-course",
@@ -230,6 +265,7 @@ export const mockContent: LearningContent[] = [
     level: levels[1],
     topics: [topics[1], topics[3]],
     instructors: [instructors[1]],
+    sections: [],
     units: [
       lesson(
         "sql-course",
@@ -264,6 +300,7 @@ export const mockContent: LearningContent[] = [
     level: levels[1],
     topics: [topics[0]],
     instructors: [instructors[0]],
+    sections: [],
     units: [
       lesson(
         "react-components",
@@ -313,6 +350,7 @@ export const mockContent: LearningContent[] = [
     level: levels[0],
     topics: [topics[1]],
     instructors: [instructors[1]],
+    sections: [],
     units: [
       lesson(
         "docker-course",

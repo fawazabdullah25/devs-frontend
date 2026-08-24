@@ -1,7 +1,6 @@
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
-  CheckCircleIcon,
   ClockIcon,
   ListBulletsIcon,
 } from "@phosphor-icons/react"
@@ -9,6 +8,7 @@ import { Link, createFileRoute, notFound } from "@tanstack/react-router"
 
 import { VideoPlayer } from "@/components/video-player"
 import { AttachmentsSection } from "@/components/attachments-section"
+import { SeriesCurriculumSidebar } from "@/components/series-curriculum"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { getContent } from "@/lib/api"
+import { lessonNumber, orderedSeriesUnits } from "@/lib/curriculum"
 import { useLocale } from "@/lib/locale-context"
 import { formatDuration, localize } from "@/types/content"
 
@@ -45,11 +46,11 @@ export const Route = createFileRoute(
 function LessonPage() {
   const { content, unit } = Route.useLoaderData()
   const { locale, t } = useLocale()
-  const index = content.units.findIndex((candidate) => candidate.id === unit.id)
-  const previous = index > 0 ? content.units[index - 1] : null
-  const next =
-    index < content.units.length - 1 ? content.units[index + 1] : null
-  const progress = Math.round(((index + 1) / content.units.length) * 100)
+  const orderedUnits = orderedSeriesUnits(content)
+  const index = orderedUnits.findIndex((candidate) => candidate.id === unit.id)
+  const previous = index > 0 ? orderedUnits[index - 1] : null
+  const next = index < orderedUnits.length - 1 ? orderedUnits[index + 1] : null
+  const progress = Math.round(((index + 1) / orderedUnits.length) * 100)
 
   return (
     <div className="content-shell py-8 sm:py-12">
@@ -74,7 +75,7 @@ function LessonPage() {
           <div className="mt-7 flex flex-col gap-4">
             <div className="flex flex-wrap gap-2">
               <Badge>
-                {t("lessonNumber")} {unit.position}
+                {t("lessonNumber")} {lessonNumber(content, unit.id)}
               </Badge>
               <Badge variant="outline">
                 <ClockIcon />
@@ -140,37 +141,11 @@ function LessonPage() {
                 <ProgressValue>{() => `${progress}%`}</ProgressValue>
               </Progress>
             </CardHeader>
-            <CardContent className="flex flex-col gap-1">
-              {content.units.map((candidate) => {
-                const active = candidate.id === unit.id
-                return (
-                  <Button
-                    key={candidate.id}
-                    variant={active ? "secondary" : "ghost"}
-                    className="h-auto justify-start py-3 text-start whitespace-normal"
-                    render={
-                      <Link
-                        to="/$locale/series/$seriesSlug/lessons/$lessonSlug"
-                        params={{
-                          locale,
-                          seriesSlug: content.slug,
-                          lessonSlug: candidate.slug,
-                        }}
-                      />
-                    }
-                    nativeButton={false}
-                  >
-                    {active ? (
-                      <CheckCircleIcon data-icon="inline-start" weight="fill" />
-                    ) : (
-                      <span className="w-4 text-center text-xs tabular-nums">
-                        {candidate.position}
-                      </span>
-                    )}
-                    {localize(candidate.title, locale)}
-                  </Button>
-                )
-              })}
+            <CardContent>
+              <SeriesCurriculumSidebar
+                content={content}
+                activeUnitId={unit.id}
+              />
             </CardContent>
           </Card>
         </aside>

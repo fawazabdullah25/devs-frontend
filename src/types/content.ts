@@ -63,10 +63,18 @@ export interface Attachment {
   purgeAfter?: string
 }
 
+export interface ContentSection {
+  id: string
+  position: number
+  title: LocalizedText
+  description?: LocalizedText
+}
+
 export interface ContentUnit {
   id: string
   slug: string
   position: number
+  sectionId?: string
   title: LocalizedText
   summary?: LocalizedText
   media: MediaAsset
@@ -86,6 +94,7 @@ export interface LearningContent {
   level: Level
   topics: Topic[]
   instructors: Instructor[]
+  sections: ContentSection[]
   units: ContentUnit[]
   coverUrl?: string
   featuredRank?: number
@@ -177,6 +186,21 @@ export interface UnitInput {
   summary?: string
   summaryAr?: string
   mediaId: string
+  sectionId?: string
+}
+
+export interface CurriculumSectionInput {
+  id?: string
+  title: string
+  titleAr?: string
+  description?: string
+  descriptionAr?: string
+  unitIds: string[]
+}
+
+export interface CurriculumInput {
+  sections: CurriculumSectionInput[]
+  unsectionedUnitIds: string[]
 }
 
 export function localize(value: LocalizedText, locale: Locale): string {

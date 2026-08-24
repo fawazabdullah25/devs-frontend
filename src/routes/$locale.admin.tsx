@@ -8,6 +8,7 @@ import {
   DotsThreeIcon,
   EyeIcon,
   FilmStripIcon,
+  FolderOpenIcon,
   GearIcon,
   ListIcon,
   NotePencilIcon,
@@ -18,7 +19,7 @@ import {
   UploadSimpleIcon,
   UsersThreeIcon,
 } from "@phosphor-icons/react"
-import { createFileRoute } from "@tanstack/react-router"
+import { Link, createFileRoute } from "@tanstack/react-router"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -61,6 +62,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -73,6 +75,14 @@ import {
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Sheet,
   SheetContent,
@@ -555,39 +565,55 @@ function ContentLibrary({
                         <span className="sr-only">{t("moreActions")}</span>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEdit(item)}>
-                          <NotePencilIcon />
-                          {t("edit")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onManage(item)}>
-                          <UploadSimpleIcon />
-                          {t("manageVideos")}
-                        </DropdownMenuItem>
-                        {item.status !== "PUBLISHED" && (
-                          <DropdownMenuItem
-                            disabled={changingStatus}
-                            onClick={() => onPublish(item)}
-                          >
-                            <PaperPlaneTiltIcon />
-                            {t("publish")}
+                        <DropdownMenuGroup>
+                          <DropdownMenuItem onClick={() => onEdit(item)}>
+                            <NotePencilIcon />
+                            {t("edit")}
                           </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          disabled={item.status !== "PUBLISHED"}
-                          onClick={() => onPreview(item)}
-                        >
-                          <ArrowSquareOutIcon />
-                          {t("preview")}
-                        </DropdownMenuItem>
-                        {item.status !== "ARCHIVED" && (
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onClick={() => onArchive(item)}
-                          >
-                            <ArchiveIcon />
-                            {t("archive")}
+                          <DropdownMenuItem onClick={() => onManage(item)}>
+                            <UploadSimpleIcon />
+                            {t("manageVideos")}
                           </DropdownMenuItem>
-                        )}
+                          {item.kind === "SERIES" && (
+                            <DropdownMenuItem
+                              render={
+                                <Link
+                                  to="/$locale/admin/content/$contentId/curriculum"
+                                  params={{ locale, contentId: item.id }}
+                                />
+                              }
+                              nativeButton={false}
+                            >
+                              <FolderOpenIcon />
+                              {t("manageCurriculum")}
+                            </DropdownMenuItem>
+                          )}
+                          {item.status !== "PUBLISHED" && (
+                            <DropdownMenuItem
+                              disabled={changingStatus}
+                              onClick={() => onPublish(item)}
+                            >
+                              <PaperPlaneTiltIcon />
+                              {t("publish")}
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            disabled={item.status !== "PUBLISHED"}
+                            onClick={() => onPreview(item)}
+                          >
+                            <ArrowSquareOutIcon />
+                            {t("preview")}
+                          </DropdownMenuItem>
+                          {item.status !== "ARCHIVED" && (
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => onArchive(item)}
+                            >
+                              <ArchiveIcon />
+                              {t("archive")}
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuGroup>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -804,21 +830,39 @@ function MediaWorkflow({
   const [position, setPosition] = React.useState(
     Math.max(0, ...content.units.map((unit) => unit.position)) + 1
   )
+  const [sectionId, setSectionId] = React.useState<string | null>(
+    content.sections[0]?.id ?? null
+  )
   const [stage, setStage] = React.useState<MediaStage>("idle")
   const [progress, setProgress] = React.useState(0)
   const [error, setError] = React.useState<string | null>(null)
   const busy = stage !== "idle" && stage !== "done"
   const courseHasVideo = content.kind === "COURSE" && content.units.length >= 1
+  const requiresSection =
+    content.kind === "SERIES" && content.sections.length > 0
+  const sectionItems = content.sections.map((section) => ({
+    value: section.id,
+    label: localize(section.title, locale),
+  }))
 
   React.useEffect(() => {
     setPosition(Math.max(0, ...content.units.map((unit) => unit.position)) + 1)
   }, [content.units])
 
+  React.useEffect(() => {
+    if (!requiresSection) setSectionId(null)
+    else if (!content.sections.some((section) => section.id === sectionId)) {
+      setSectionId(content.sections[0]?.id ?? null)
+    }
+  }, [content.sections, requiresSection, sectionId])
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     setError(null)
     const invalidCommon =
-      !title.trim() || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
+      !title.trim() ||
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) ||
+      (requiresSection && !sectionId)
     const invalidStaticHls =
       sourceKind === "STATIC_HLS" &&
       (!manifestPath.trim() ||
@@ -880,6 +924,7 @@ function MediaWorkflow({
         slug,
         position,
         mediaId,
+        sectionId: sectionId ?? undefined,
       })
       onSaved(saved)
       setStage("done")
@@ -1158,6 +1203,33 @@ function MediaWorkflow({
                 }}
               />
             </Field>
+            {requiresSection && (
+              <Field>
+                <FieldLabel>{t("destinationSection")}</FieldLabel>
+                <Select
+                  items={sectionItems}
+                  value={sectionId}
+                  onValueChange={(next) => setSectionId(next)}
+                  disabled={busy}
+                >
+                  <SelectTrigger
+                    className="w-full"
+                    aria-label={t("destinationSection")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {sectionItems.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
           </FieldGroup>
 
           {error && (
