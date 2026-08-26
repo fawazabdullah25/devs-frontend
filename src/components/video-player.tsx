@@ -1,3 +1,4 @@
+import * as React from "react"
 import MuxPlayer from "@mux/mux-player-react"
 import { VideoCameraIcon } from "@phosphor-icons/react"
 import {
@@ -14,7 +15,14 @@ import {
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useLocale } from "@/lib/locale-context"
+import { arabicVidstackTranslations } from "@/lib/vidstack-translations"
 import type { ContentUnit } from "@/types/content"
+
+const HLS_PLAYBACK_RATES = {
+  min: 0.25,
+  max: 2,
+  step: 0.25,
+}
 
 export function VideoPlayer({
   unit,
@@ -58,33 +66,12 @@ export function VideoPlayer({
   }
 
   if (media.provider === "STATIC_HLS") {
-    const configureHls = (provider: MediaProviderAdapter | null) => {
-      if (isHLSProvider(provider)) provider.library = () => import("hls.js")
-    }
-
     return (
-      <MediaPlayer
-        className="devs-media-player aspect-video w-full overflow-hidden bg-black text-white"
+      <StaticHlsPlayer
+        media={media}
+        playbackSource={playbackSource}
         title={title}
-        src={{ src: playbackSource, type: "application/x-mpegurl" }}
-        crossOrigin
-        playsInline
-        onProviderChange={configureHls}
-      >
-        <MediaProvider>
-          {media.captions.map((caption) => (
-            <Track
-              key={`${caption.language}-${caption.url}`}
-              src={caption.url}
-              kind="subtitles"
-              label={caption.label}
-              language={caption.language}
-              default={caption.defaultTrack}
-            />
-          ))}
-        </MediaProvider>
-        <DefaultVideoLayout icons={defaultLayoutIcons} />
-      </MediaPlayer>
+      />
     )
   }
 
@@ -98,5 +85,79 @@ export function VideoPlayer({
       accentColor="var(--primary)"
       className="aspect-video w-full"
     />
+  )
+}
+
+function StaticHlsPlayer({
+  media,
+  playbackSource,
+  title,
+}: {
+  media: ContentUnit["media"]
+  playbackSource: string
+  title: string
+}) {
+  const { direction, locale, t } = useLocale()
+  const providerRef = React.useRef<MediaProviderAdapter | null>(null)
+  const [aspectRatio, setAspectRatio] = React.useState("16 / 11")
+
+  const configureHls = React.useCallback(
+    (provider: MediaProviderAdapter | null) => {
+      providerRef.current = provider
+      if (isHLSProvider(provider)) provider.library = () => import("hls.js")
+    },
+    []
+  )
+
+  const syncAspectRatio = React.useCallback(() => {
+    const provider = providerRef.current
+    if (!isHLSProvider(provider)) return
+
+    const { videoHeight, videoWidth } = provider.video
+    if (videoWidth > 0 && videoHeight > 0) {
+      setAspectRatio(`${videoWidth} / ${videoHeight}`)
+    }
+  }, [])
+
+  return (
+    <MediaPlayer
+      className="devs-media-player w-full overflow-hidden bg-black text-white"
+      title={title}
+      src={{ src: playbackSource, type: "application/x-mpegurl" }}
+      crossOrigin
+      playsInline
+      dir={direction}
+      style={{ aspectRatio }}
+      onLoadedMetadata={syncAspectRatio}
+      onProviderChange={configureHls}
+    >
+      <MediaProvider>
+        {media.captions.map((caption) => {
+          const language = caption.language.toLowerCase()
+          const label =
+            locale === "ar" && language.startsWith("en")
+              ? t("englishCaptions")
+              : locale === "ar" && language.startsWith("ar")
+                ? t("arabicCaptions")
+                : caption.label
+
+          return (
+            <Track
+              key={`${caption.language}-${caption.url}`}
+              src={caption.url}
+              kind="subtitles"
+              label={label}
+              language={caption.language}
+              default={caption.defaultTrack}
+            />
+          )
+        })}
+      </MediaProvider>
+      <DefaultVideoLayout
+        icons={defaultLayoutIcons}
+        playbackRates={HLS_PLAYBACK_RATES}
+        translations={locale === "ar" ? arabicVidstackTranslations : null}
+      />
+    </MediaPlayer>
   )
 }
