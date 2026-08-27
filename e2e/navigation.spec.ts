@@ -79,6 +79,29 @@ test("admin curriculum workflow exposes Static HLS only", async ({ page }) => {
   ).toBeVisible()
 })
 
+test("new content dialog allows selecting kind and visibility", async ({
+  page,
+}) => {
+  await page.goto("/en/admin")
+  await page.getByRole("button", { name: "Content", exact: true }).click()
+  await page.getByRole("button", { name: "New content", exact: true }).click()
+
+  const dialog = page.getByRole("dialog", { name: "Create learning content" })
+  await expect(dialog).toBeVisible()
+
+  const series = dialog.getByRole("button", { name: "Series", exact: true })
+  const studentsOnly = dialog.getByRole("button", {
+    name: "Student accounts only",
+    exact: true,
+  })
+
+  await series.click()
+  await studentsOnly.click()
+
+  await expect(series).toHaveAttribute("aria-pressed", "true")
+  await expect(studentsOnly).toHaveAttribute("aria-pressed", "true")
+})
+
 test("public navigation and course metadata avoid redundant labels", async ({
   page,
 }) => {

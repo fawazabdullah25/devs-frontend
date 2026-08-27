@@ -126,7 +126,7 @@ export function ContentCreateDialog({
                 onValueChange={(values) =>
                   values[0] && setKind(values[0] as ContentKind)
                 }
-                variant="outline"
+                variant="selection"
                 aria-label={t("kind")}
               >
                 <ToggleGroupItem type="button" value="COURSE">
@@ -144,7 +144,7 @@ export function ContentCreateDialog({
                 onValueChange={(values) =>
                   values[0] && setVisibility(values[0] as ContentVisibility)
                 }
-                variant="outline"
+                variant="selection"
                 aria-label={t("visibility")}
               >
                 <ToggleGroupItem type="button" value="PUBLIC">
