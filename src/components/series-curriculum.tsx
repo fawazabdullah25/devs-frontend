@@ -1,9 +1,4 @@
-import {
-  ArrowRightIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  PlayIcon,
-} from "@phosphor-icons/react"
+import { ArrowRightIcon, ClockIcon, PlayIcon } from "@phosphor-icons/react"
 import { Link } from "@tanstack/react-router"
 
 import {
@@ -213,6 +208,7 @@ function SidebarLesson({
     <Button
       variant={active ? "secondary" : "ghost"}
       className="h-auto justify-start py-3 text-start whitespace-normal"
+      aria-current={active ? "page" : undefined}
       render={
         <Link
           to="/$locale/series/$seriesSlug/lessons/$lessonSlug"
@@ -225,13 +221,9 @@ function SidebarLesson({
       }
       nativeButton={false}
     >
-      {active ? (
-        <CheckCircleIcon data-icon="inline-start" weight="fill" />
-      ) : (
-        <span className="w-7 text-center text-xs tabular-nums">
-          {lessonNumber(content, unit.id)}
-        </span>
-      )}
+      <span className="w-7 shrink-0 text-center text-xs tabular-nums">
+        {lessonNumber(content, unit.id)}
+      </span>
       {localize(unit.title, locale)}
     </Button>
   )

@@ -29,7 +29,19 @@ export function SiteHeader() {
   // URL fragments never reach the server. Add the client-only fragment after
   // hydration so the initial href matches, and prefix TanStack's bare hash.
   const hash = hasHydrated && location.hash ? `#${location.hash}` : ""
-  const alternateHref = `${withLocale(location.pathname, alternateLocale)}${location.searchStr}${hash}`
+  // Normalize the retired curriculum URL on both the server and client. Its
+  // redirect can finish before hydration, so using its raw path would produce
+  // different hrefs in the server and client trees.
+  const legacyCurriculumPath = location.pathname.match(
+    /^\/(?:en|ar)\/admin\/content\/([^/]+)\/curriculum\/?$/
+  )
+  const languagePath = legacyCurriculumPath
+    ? `/${alternateLocale}/admin/content/${legacyCurriculumPath[1]}`
+    : withLocale(location.pathname, alternateLocale)
+  const languageSearch = legacyCurriculumPath
+    ? "?tab=curriculum"
+    : location.searchStr
+  const alternateHref = `${languagePath}${languageSearch}${hash}`
   const navigation = [{ label: t("catalog"), to: "/$locale/catalog" as const }]
 
   return (

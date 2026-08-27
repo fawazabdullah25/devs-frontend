@@ -18,7 +18,7 @@ export const Route = createFileRoute("/$locale/courses/$slug")({
 
 function CoursePage() {
   const content = Route.useLoaderData()
-  const { locale, t } = useLocale()
+  const { locale } = useLocale()
   const unit = content.units[0]
 
   return (
@@ -27,9 +27,6 @@ function CoursePage() {
       <div className="content-shell flex flex-col gap-16 py-14 sm:py-20">
         <section id={unit.slug} className="scroll-mt-24">
           <div className="mb-5 flex flex-col gap-2">
-            <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
-              {t("watchNow")}
-            </p>
             <h2 className="text-2xl font-bold tracking-tight">
               {localize(content.title, locale)}
             </h2>

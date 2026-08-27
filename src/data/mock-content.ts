@@ -33,7 +33,7 @@ export const levels: Level[] = [
   },
 ]
 
-const instructors: Instructor[] = [
+export const instructors: Instructor[] = [
   {
     id: "instructor-sara",
     name: { en: "Sara Alharbi", ar: "سارة الحربي" },

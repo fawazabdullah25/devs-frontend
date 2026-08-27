@@ -10,7 +10,7 @@ import {
   SpinnerGapIcon,
   TrashIcon,
 } from "@phosphor-icons/react"
-import { Link, useBlocker } from "@tanstack/react-router"
+import { Link, useBlocker, useRouter } from "@tanstack/react-router"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -77,8 +77,17 @@ interface EditableSection {
   unitIds: string[]
 }
 
-export function CurriculumEditor({ initial }: { initial: LearningContent }) {
+export function CurriculumEditor({
+  initial,
+  embedded = false,
+  onSaved,
+}: {
+  initial: LearningContent
+  embedded?: boolean
+  onSaved?: (content: LearningContent) => void
+}) {
   const { locale, t } = useLocale()
+  const router = useRouter()
   const [content, setContent] = React.useState(initial)
   const initialDraft = React.useMemo(() => toDraft(initial), [initial])
   const [sections, setSections] = React.useState<EditableSection[]>(
@@ -137,6 +146,10 @@ export function CurriculumEditor({ initial }: { initial: LearningContent }) {
         })
         setContent(saved)
         reset(saved)
+        onSaved?.(saved)
+        // Refresh the cached admin loader so Dashboard, Content library, and
+        // Media inbox reflect the curriculum change after navigating back.
+        await router.invalidate({ sync: true }).catch(() => undefined)
         toast.add({ title: t("curriculumSaved"), type: "success" })
       } catch (error) {
         toast.add({
@@ -207,63 +220,93 @@ export function CurriculumEditor({ initial }: { initial: LearningContent }) {
       label: section.title || t("section"),
     })),
   ]
+  const actions = (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        variant="outline"
+        disabled={!dirty || saving}
+        onClick={() => reset()}
+      >
+        {t("discardChanges")}
+      </Button>
+      <Button
+        disabled={!dirty || saving || hasBlankTitle || publishedIncomplete}
+        onClick={save}
+      >
+        {saving && (
+          <SpinnerGapIcon data-icon="inline-start" className="animate-spin" />
+        )}
+        {t("saveCurriculum")}
+      </Button>
+    </div>
+  )
 
   return (
-    <div className="content-shell py-8 sm:py-12">
-      <header className="flex flex-col gap-5 border-b pb-7 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex max-w-3xl flex-col gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-fit"
-            render={<Link to="/$locale/admin" params={{ locale }} />}
-            nativeButton={false}
-          >
-            <ArrowLeftIcon
-              data-icon="inline-start"
-              className="rtl:rotate-180"
-            />
-            {t("contentLibrary")}
-          </Button>
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">{t("series")}</Badge>
-              <Badge variant="secondary">{statusLabel}</Badge>
-              {dirty && <Badge>{t("unsavedChanges")}</Badge>}
+    <div
+      className={
+        embedded ? "flex flex-col gap-6" : "content-shell py-8 sm:py-12"
+      }
+    >
+      {!embedded && (
+        <header className="flex flex-col gap-5 border-b pb-7 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex max-w-3xl flex-col gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-fit"
+              render={
+                <Link
+                  to="/$locale/admin"
+                  params={{ locale }}
+                  search={{ section: "content" }}
+                />
+              }
+              nativeButton={false}
+            >
+              <ArrowLeftIcon
+                data-icon="inline-start"
+                className="rtl:rotate-180"
+              />
+              {t("contentLibrary")}
+            </Button>
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">{t("series")}</Badge>
+                <Badge variant="secondary">{statusLabel}</Badge>
+                {dirty && <Badge>{t("unsavedChanges")}</Badge>}
+              </div>
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                {t("curriculumEditorTitle")}
+              </h1>
+              <p className="text-muted-foreground">
+                {localize(content.title, locale)} ·{" "}
+                {t("curriculumEditorDescription")}
+              </p>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          </div>
+          {actions}
+        </header>
+      )}
+
+      {embedded && (
+        <div className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-xl font-semibold">
               {t("curriculumEditorTitle")}
-            </h1>
-            <p className="text-muted-foreground">
-              {localize(content.title, locale)} ·{" "}
+            </h2>
+            <p className="text-sm text-muted-foreground">
               {t("curriculumEditorDescription")}
             </p>
           </div>
+          {actions}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            disabled={!dirty || saving}
-            onClick={() => reset()}
-          >
-            {t("discardChanges")}
-          </Button>
-          <Button
-            disabled={!dirty || saving || hasBlankTitle || publishedIncomplete}
-            onClick={save}
-          >
-            {saving && (
-              <SpinnerGapIcon
-                data-icon="inline-start"
-                className="animate-spin"
-              />
-            )}
-            {t("saveCurriculum")}
-          </Button>
-        </div>
-      </header>
+      )}
 
-      <main className="mt-8 flex flex-col gap-6">
+      <main
+        className={
+          embedded ? "flex flex-col gap-6" : "mt-8 flex flex-col gap-6"
+        }
+      >
         {publishedIncomplete && (
           <Alert variant="destructive">
             <FolderOpenIcon aria-hidden="true" />

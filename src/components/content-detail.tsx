@@ -109,9 +109,6 @@ export function AboutContent({ content }: { content: LearningContent }) {
   return (
     <div className="grid gap-10 lg:grid-cols-[1fr_340px]">
       <section className="flex flex-col gap-5">
-        <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
-          {t("learningOverview")}
-        </p>
         <h2 className="text-3xl font-bold tracking-tight">{t("about")}</h2>
         <p className="max-w-3xl text-base leading-8 text-muted-foreground">
           {localize(content.description, locale)}

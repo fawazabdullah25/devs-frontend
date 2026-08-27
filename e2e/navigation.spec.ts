@@ -6,14 +6,14 @@ test("admin sidebar exposes every section", async ({ page }) => {
     page.getByRole("heading", { name: "Learning operations" })
   ).toBeVisible({ timeout: 15_000 })
 
-  const tabs = page.getByRole("tab")
-  await expect(tabs).toHaveCount(5)
+  const navigation = page.getByRole("navigation", { name: "Admin menu" })
+  await expect(navigation.getByRole("button")).toHaveCount(5)
+  await expect(
+    navigation.getByRole("button", { name: "Overview" })
+  ).toBeVisible()
+  await expect(navigation.getByRole("button", { name: "Media" })).toBeVisible()
 
-  for (const tab of await tabs.all()) {
-    await expect(tab).toBeVisible()
-  }
-
-  await page.getByRole("tab", { name: "Content", exact: true }).click()
+  await navigation.getByRole("button", { name: "Content", exact: true }).click()
   await expect(
     page.getByRole("heading", { name: "Content library" })
   ).toBeVisible()
@@ -55,28 +55,28 @@ test("mobile admin navigation opens from a sheet", async ({ page }) => {
   await expect(navigation).toBeHidden()
 })
 
-test("admin media workflow exposes static HLS and legacy Mux inputs", async ({
-  page,
-}) => {
+test("admin curriculum workflow exposes Static HLS only", async ({ page }) => {
   await page.goto("/en/admin")
-  await page.getByRole("tab", { name: "Media inbox" }).click()
+  await page.getByRole("button", { name: "Content", exact: true }).click()
+  await page.getByRole("link", { name: "Web Foundations" }).click()
+  await page.getByRole("tab", { name: "Curriculum", exact: true }).click()
+  await page.getByRole("button", { name: "Add lesson", exact: true }).click()
 
-  await page.getByRole("button", { name: "Add video" }).first().click()
-  const dialog = page.getByRole("dialog", { name: "Curriculum and video" })
+  const dialog = page.getByRole("dialog", { name: "Add lesson" })
   await expect(dialog).toBeVisible()
-  await expect(
-    dialog.getByRole("button", { name: "Static HLS package" })
-  ).toHaveAttribute("aria-pressed", "true")
+  await expect(dialog.getByLabel("Lesson title")).toBeVisible()
+  await expect(dialog.getByLabel("Lesson slug")).toBeVisible()
   await expect(dialog.getByLabel("Relative master playlist path")).toBeVisible()
-  await expect(dialog.getByLabel("English captions")).toBeVisible()
-  await expect(dialog.getByLabel("Arabic captions")).toBeVisible()
-  await expect(dialog.getByLabel("Destination section")).toBeVisible()
-
-  await dialog.getByRole("button", { name: "Mux upload" }).click()
-  await expect(dialog.getByLabel("Video file")).toBeVisible()
-  await expect(dialog.getByLabel("Relative master playlist path")).toHaveCount(
+  await expect(dialog.getByLabel("Duration in seconds")).toBeVisible()
+  await expect(dialog.getByLabel("Encoding version")).toBeVisible()
+  await expect(dialog.getByRole("button", { name: "Mux upload" })).toHaveCount(
     0
   )
+
+  await dialog.getByRole("button", { name: "Add lesson", exact: true }).click()
+  await expect(
+    dialog.getByText("This field is required.").first()
+  ).toBeVisible()
 })
 
 test("public navigation and course metadata avoid redundant labels", async ({
@@ -99,6 +99,15 @@ test("public navigation and course metadata avoid redundant labels", async ({
   await expect(
     page.getByRole("button", { name: "View course" }).first()
   ).toBeVisible({ timeout: 15_000 })
+
+  await page.goto("/en/catalog")
+  await expect(
+    page.getByRole("link", { name: "View course: Git Without Fear" })
+  ).toHaveAttribute("href", "/en/courses/git-without-fear")
+  await expect(
+    page.getByRole("link", { name: "View series: Web Foundations" })
+  ).toHaveAttribute("href", "/en/series/web-foundations")
+  await page.goto("/en")
 
   const featuredSeries = page
     .getByRole("group")
@@ -160,6 +169,17 @@ test("sectioned series expose grouped curriculum and hierarchical lessons", asyn
   await page.goto("/en/series/web-foundations/lessons/responsive-layouts")
   await expect(page.getByText("Lesson 2.1", { exact: true })).toBeVisible()
   await expect(page.getByText("3 / 4", { exact: true })).toBeVisible()
+  await expect(page.locator('aside a[aria-current="page"]')).toContainText(
+    "2.1"
+  )
+  await expect(
+    page.locator("aside").getByRole("button", {
+      name: "Attachments · none",
+    })
+  ).toBeDisabled()
+  await expect(
+    page.getByRole("navigation", { name: "Curriculum" })
+  ).toBeVisible()
 })
 
 test("admin curriculum editor organizes sections without drag and drop", async ({
@@ -167,13 +187,17 @@ test("admin curriculum editor organizes sections without drag and drop", async (
 }) => {
   await page.goto("/en/admin/content/content-web-foundations/curriculum")
 
+  await expect(page).toHaveURL(
+    /\/en\/admin\/content\/content-web-foundations\?tab=curriculum$/
+  )
+
   await expect(
-    page.getByRole("heading", { name: "Organize curriculum" })
+    page.getByRole("tab", { name: "Current lessons", exact: true })
   ).toBeVisible({ timeout: 15_000 })
   await expect(
     page.getByText("The foundations", { exact: true }).first()
   ).toBeVisible()
-  await expect(page.getByText("1.1", { exact: true })).toBeVisible()
+  await expect(page.getByText("1.1", { exact: true }).first()).toBeVisible()
   await expect(
     page.getByRole("button", { name: "Save curriculum" })
   ).toBeDisabled()

@@ -16,6 +16,7 @@ import { Route as LocaleAdminRouteImport } from './routes/$locale.admin'
 import { Route as LocaleCatalogRouteImport } from './routes/$locale.catalog'
 import { Route as LocaleCoursesSlugRouteImport } from './routes/$locale.courses.$slug'
 import { Route as LocaleSeriesSlugRouteImport } from './routes/$locale.series.$slug'
+import { Route as LocaleAdminContentContentIdRouteImport } from './routes/$locale.admin_.content.$contentId'
 import { Route as LocaleAdminContentContentIdCurriculumRouteImport } from './routes/$locale.admin_.content.$contentId.curriculum'
 import { Route as LocaleSeriesSeriesSlugLessonsLessonSlugRouteImport } from './routes/$locale.series.$seriesSlug.lessons.$lessonSlug'
 
@@ -54,11 +55,17 @@ const LocaleSeriesSlugRoute = LocaleSeriesSlugRouteImport.update({
   path: '/series/$slug',
   getParentRoute: () => LocaleRoute,
 } as any)
+const LocaleAdminContentContentIdRoute =
+  LocaleAdminContentContentIdRouteImport.update({
+    id: '/admin_/content/$contentId',
+    path: '/admin/content/$contentId',
+    getParentRoute: () => LocaleRoute,
+  } as any)
 const LocaleAdminContentContentIdCurriculumRoute =
   LocaleAdminContentContentIdCurriculumRouteImport.update({
-    id: '/admin_/content/$contentId/curriculum',
-    path: '/admin/content/$contentId/curriculum',
-    getParentRoute: () => LocaleRoute,
+    id: '/curriculum',
+    path: '/curriculum',
+    getParentRoute: () => LocaleAdminContentContentIdRoute,
   } as any)
 const LocaleSeriesSeriesSlugLessonsLessonSlugRoute =
   LocaleSeriesSeriesSlugLessonsLessonSlugRouteImport.update({
@@ -75,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/$locale/': typeof LocaleIndexRoute
   '/$locale/courses/$slug': typeof LocaleCoursesSlugRoute
   '/$locale/series/$slug': typeof LocaleSeriesSlugRoute
+  '/$locale/admin/content/$contentId': typeof LocaleAdminContentContentIdRouteWithChildren
   '/$locale/admin/content/$contentId/curriculum': typeof LocaleAdminContentContentIdCurriculumRoute
   '/$locale/series/$seriesSlug/lessons/$lessonSlug': typeof LocaleSeriesSeriesSlugLessonsLessonSlugRoute
 }
@@ -85,6 +93,7 @@ export interface FileRoutesByTo {
   '/$locale': typeof LocaleIndexRoute
   '/$locale/courses/$slug': typeof LocaleCoursesSlugRoute
   '/$locale/series/$slug': typeof LocaleSeriesSlugRoute
+  '/$locale/admin/content/$contentId': typeof LocaleAdminContentContentIdRouteWithChildren
   '/$locale/admin/content/$contentId/curriculum': typeof LocaleAdminContentContentIdCurriculumRoute
   '/$locale/series/$seriesSlug/lessons/$lessonSlug': typeof LocaleSeriesSeriesSlugLessonsLessonSlugRoute
 }
@@ -97,6 +106,7 @@ export interface FileRoutesById {
   '/$locale/': typeof LocaleIndexRoute
   '/$locale/courses/$slug': typeof LocaleCoursesSlugRoute
   '/$locale/series/$slug': typeof LocaleSeriesSlugRoute
+  '/$locale/admin_/content/$contentId': typeof LocaleAdminContentContentIdRouteWithChildren
   '/$locale/admin_/content/$contentId/curriculum': typeof LocaleAdminContentContentIdCurriculumRoute
   '/$locale/series/$seriesSlug/lessons/$lessonSlug': typeof LocaleSeriesSeriesSlugLessonsLessonSlugRoute
 }
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/$locale/'
     | '/$locale/courses/$slug'
     | '/$locale/series/$slug'
+    | '/$locale/admin/content/$contentId'
     | '/$locale/admin/content/$contentId/curriculum'
     | '/$locale/series/$seriesSlug/lessons/$lessonSlug'
   fileRoutesByTo: FileRoutesByTo
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/$locale'
     | '/$locale/courses/$slug'
     | '/$locale/series/$slug'
+    | '/$locale/admin/content/$contentId'
     | '/$locale/admin/content/$contentId/curriculum'
     | '/$locale/series/$seriesSlug/lessons/$lessonSlug'
   id:
@@ -131,6 +143,7 @@ export interface FileRouteTypes {
     | '/$locale/'
     | '/$locale/courses/$slug'
     | '/$locale/series/$slug'
+    | '/$locale/admin_/content/$contentId'
     | '/$locale/admin_/content/$contentId/curriculum'
     | '/$locale/series/$seriesSlug/lessons/$lessonSlug'
   fileRoutesById: FileRoutesById
@@ -191,12 +204,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleSeriesSlugRouteImport
       parentRoute: typeof LocaleRoute
     }
+    '/$locale/admin_/content/$contentId': {
+      id: '/$locale/admin_/content/$contentId'
+      path: '/admin/content/$contentId'
+      fullPath: '/$locale/admin/content/$contentId'
+      preLoaderRoute: typeof LocaleAdminContentContentIdRouteImport
+      parentRoute: typeof LocaleRoute
+    }
     '/$locale/admin_/content/$contentId/curriculum': {
       id: '/$locale/admin_/content/$contentId/curriculum'
-      path: '/admin/content/$contentId/curriculum'
+      path: '/curriculum'
       fullPath: '/$locale/admin/content/$contentId/curriculum'
       preLoaderRoute: typeof LocaleAdminContentContentIdCurriculumRouteImport
-      parentRoute: typeof LocaleRoute
+      parentRoute: typeof LocaleAdminContentContentIdRoute
     }
     '/$locale/series/$seriesSlug/lessons/$lessonSlug': {
       id: '/$locale/series/$seriesSlug/lessons/$lessonSlug'
@@ -208,13 +228,28 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface LocaleAdminContentContentIdRouteChildren {
+  LocaleAdminContentContentIdCurriculumRoute: typeof LocaleAdminContentContentIdCurriculumRoute
+}
+
+const LocaleAdminContentContentIdRouteChildren: LocaleAdminContentContentIdRouteChildren =
+  {
+    LocaleAdminContentContentIdCurriculumRoute:
+      LocaleAdminContentContentIdCurriculumRoute,
+  }
+
+const LocaleAdminContentContentIdRouteWithChildren =
+  LocaleAdminContentContentIdRoute._addFileChildren(
+    LocaleAdminContentContentIdRouteChildren,
+  )
+
 interface LocaleRouteChildren {
   LocaleAdminRoute: typeof LocaleAdminRoute
   LocaleCatalogRoute: typeof LocaleCatalogRoute
   LocaleIndexRoute: typeof LocaleIndexRoute
   LocaleCoursesSlugRoute: typeof LocaleCoursesSlugRoute
   LocaleSeriesSlugRoute: typeof LocaleSeriesSlugRoute
-  LocaleAdminContentContentIdCurriculumRoute: typeof LocaleAdminContentContentIdCurriculumRoute
+  LocaleAdminContentContentIdRoute: typeof LocaleAdminContentContentIdRouteWithChildren
   LocaleSeriesSeriesSlugLessonsLessonSlugRoute: typeof LocaleSeriesSeriesSlugLessonsLessonSlugRoute
 }
 
@@ -224,8 +259,8 @@ const LocaleRouteChildren: LocaleRouteChildren = {
   LocaleIndexRoute: LocaleIndexRoute,
   LocaleCoursesSlugRoute: LocaleCoursesSlugRoute,
   LocaleSeriesSlugRoute: LocaleSeriesSlugRoute,
-  LocaleAdminContentContentIdCurriculumRoute:
-    LocaleAdminContentContentIdCurriculumRoute,
+  LocaleAdminContentContentIdRoute:
+    LocaleAdminContentContentIdRouteWithChildren,
   LocaleSeriesSeriesSlugLessonsLessonSlugRoute:
     LocaleSeriesSeriesSlugLessonsLessonSlugRoute,
 }

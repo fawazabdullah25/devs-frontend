@@ -1,22 +1,16 @@
-import { createFileRoute, notFound } from "@tanstack/react-router"
-
-import { CurriculumEditor } from "@/components/curriculum-editor"
-import { getAdminContent } from "@/lib/api"
+import { createFileRoute, redirect } from "@tanstack/react-router"
 
 export const Route = createFileRoute(
   "/$locale/admin_/content/$contentId/curriculum"
 )({
-  ssr: false,
-  loader: async ({ params }) => {
-    const content = (await getAdminContent()).find(
-      (item) => item.id === params.contentId
-    )
-    if (!content || content.kind !== "SERIES") throw notFound()
-    return content
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/$locale/admin/content/$contentId",
+      params: {
+        locale: params.locale,
+        contentId: params.contentId,
+      },
+      search: { tab: "curriculum" },
+    })
   },
-  component: CurriculumEditorPage,
 })
-
-function CurriculumEditorPage() {
-  return <CurriculumEditor initial={Route.useLoaderData()} />
-}

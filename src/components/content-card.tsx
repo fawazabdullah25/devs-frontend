@@ -28,6 +28,10 @@ export function ContentCard({ content }: { content: LearningContent }) {
     content.kind === "COURSE"
       ? "/$locale/courses/$slug"
       : "/$locale/series/$slug"
+  const title = localize(content.title, locale)
+  const coverLabel = `${
+    content.kind === "COURSE" ? t("viewCourse") : t("viewSeries")
+  }: ${title}`
   const spokenLanguage =
     content.spokenLanguage === "AR"
       ? t("arabic")
@@ -37,19 +41,23 @@ export function ContentCard({ content }: { content: LearningContent }) {
 
   return (
     <Card className="group h-full overflow-hidden pt-0 transition-transform hover:-translate-y-1">
-      {content.coverUrl ? (
-        <img
-          src={content.coverUrl}
-          alt=""
-          className="aspect-video w-full object-cover"
-          loading="lazy"
-        />
-      ) : (
-        <BrandCover
-          seed={content.slug}
-          title={localize(content.title, locale)}
-        />
-      )}
+      <Link
+        to={href}
+        params={{ locale, slug: content.slug }}
+        aria-label={coverLabel}
+        className="block focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+      >
+        {content.coverUrl ? (
+          <img
+            src={content.coverUrl}
+            alt=""
+            className="aspect-video w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <BrandCover seed={content.slug} title={title} />
+        )}
+      </Link>
       <CardHeader>
         <div className="flex flex-wrap items-center gap-2">
           <Badge>{content.kind === "COURSE" ? t("course") : t("series")}</Badge>
@@ -57,9 +65,7 @@ export function ContentCard({ content }: { content: LearningContent }) {
             {localize(content.level.name, locale)}
           </Badge>
         </div>
-        <CardTitle className="text-lg">
-          {localize(content.title, locale)}
-        </CardTitle>
+        <CardTitle className="text-lg">{title}</CardTitle>
         <CardDescription className="line-clamp-2 leading-relaxed">
           {localize(content.summary, locale)}
         </CardDescription>

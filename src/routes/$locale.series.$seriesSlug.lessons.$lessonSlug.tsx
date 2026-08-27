@@ -23,7 +23,6 @@ import {
   ProgressLabel,
   ProgressValue,
 } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
 import { getContent } from "@/lib/api"
 import { lessonNumber, orderedSeriesUnits } from "@/lib/curriculum"
 import { useLocale } from "@/lib/locale-context"
@@ -92,40 +91,37 @@ function LessonPage() {
             )}
           </div>
 
-          <div className="mt-6">
-            <AttachmentsSection attachments={unit.attachments} />
-          </div>
-
-          <Separator className="my-8" />
-          <nav
-            className="grid gap-3 sm:grid-cols-2"
-            aria-label={t("curriculum")}
-          >
-            {previous ? (
-              <LessonNavigation
-                label={t("previousLesson")}
-                contentSlug={content.slug}
-                unitSlug={previous.slug}
-                title={localize(previous.title, locale)}
-                icon="previous"
-              />
-            ) : (
-              <div />
-            )}
-            {next && (
-              <LessonNavigation
-                label={t("nextLesson")}
-                contentSlug={content.slug}
-                unitSlug={next.slug}
-                title={localize(next.title, locale)}
-                icon="next"
-              />
-            )}
-          </nav>
+          {(previous || next) && (
+            <nav
+              className="mt-6 grid gap-3 sm:grid-cols-2"
+              aria-label={t("curriculum")}
+            >
+              {previous ? (
+                <LessonNavigation
+                  label={t("previousLesson")}
+                  contentSlug={content.slug}
+                  unitSlug={previous.slug}
+                  title={localize(previous.title, locale)}
+                  icon="previous"
+                />
+              ) : (
+                <span aria-hidden="true" className="hidden sm:block" />
+              )}
+              {next && (
+                <LessonNavigation
+                  label={t("nextLesson")}
+                  contentSlug={content.slug}
+                  unitSlug={next.slug}
+                  title={localize(next.title, locale)}
+                  icon="next"
+                />
+              )}
+            </nav>
+          )}
         </main>
 
-        <aside>
-          <Card className="sticky top-24">
+        <aside className="flex flex-col gap-4 xl:sticky xl:top-24 xl:self-start">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ListBulletsIcon />
@@ -148,6 +144,7 @@ function LessonPage() {
               />
             </CardContent>
           </Card>
+          <AttachmentsSection attachments={unit.attachments} />
         </aside>
       </div>
     </div>
