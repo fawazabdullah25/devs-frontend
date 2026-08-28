@@ -40,7 +40,6 @@ describe("mock admin lifecycle API", () => {
       mediaId: "media-retained",
       current: false,
       status: "READY",
-      provider: "STATIC_HLS",
       durationSeconds: 120,
       captions: [],
       playbackPath: "pilots/example/master.m3u8",

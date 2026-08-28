@@ -56,9 +56,11 @@ export function ContentDetailHero({
               <Badge>
                 {content.kind === "COURSE" ? t("course") : t("series")}
               </Badge>
-              <Badge variant="outline">
-                {localize(content.level.name, locale)}
-              </Badge>
+              {content.tags.slice(0, 3).map((tag) => (
+                <Badge key={tag.id} variant="outline">
+                  {localize(tag.name, locale)}
+                </Badge>
+              ))}
             </div>
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
               {localize(content.title, locale)}
@@ -115,9 +117,9 @@ export function AboutContent({ content }: { content: LearningContent }) {
         </p>
         <Separator />
         <div className="flex flex-wrap gap-2">
-          {content.topics.map((topic) => (
-            <Badge key={topic.id} variant="outline">
-              {localize(topic.name, locale)}
+          {content.tags.map((tag) => (
+            <Badge key={tag.id} variant="outline">
+              {localize(tag.name, locale)}
             </Badge>
           ))}
         </div>

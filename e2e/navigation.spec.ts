@@ -67,11 +67,8 @@ test("admin curriculum workflow exposes Static HLS only", async ({ page }) => {
   await expect(dialog.getByLabel("Lesson title")).toBeVisible()
   await expect(dialog.getByLabel("Lesson slug")).toBeVisible()
   await expect(dialog.getByLabel("Relative master playlist path")).toBeVisible()
-  await expect(dialog.getByLabel("Duration in seconds")).toBeVisible()
   await expect(dialog.getByLabel("Encoding version")).toBeVisible()
-  await expect(dialog.getByRole("button", { name: "Mux upload" })).toHaveCount(
-    0
-  )
+  await expect(dialog.getByText("Captions", { exact: true })).toBeVisible()
 
   await dialog.getByRole("button", { name: "Add lesson", exact: true }).click()
   await expect(

@@ -13,7 +13,6 @@ describe("media workflow validation", () => {
       position: "invalidPosition",
       manifestPath: "requiredField",
       encodingVersion: "requiredField",
-      durationSeconds: "invalidDuration",
     })
   })
 
@@ -24,7 +23,6 @@ describe("media workflow validation", () => {
         checksumSha256: "not-a-sha256",
         manifestPath: "series/v1/master.m3u8",
         encodingVersion: "2026-08-17-v3",
-        durationSeconds: 60,
         position: 1,
       })
     )
@@ -36,19 +34,6 @@ describe("media workflow validation", () => {
     })
   })
 
-  it("requires a source file for the legacy Mux path", () => {
-    const errors = validateMediaForm(
-      values({
-        sourceKind: "MUX",
-        title: "Lesson",
-        slug: "lesson",
-        position: 1,
-      })
-    )
-
-    expect(errors).toEqual({ file: "requiredField" })
-  })
-
   it("accepts a complete static HLS form", () => {
     expect(
       validateMediaForm(
@@ -58,7 +43,6 @@ describe("media workflow validation", () => {
           position: 1,
           manifestPath: "series/v1/master.m3u8",
           encodingVersion: "2026-08-17-v3",
-          durationSeconds: 3600,
           sectionId: "section-1",
           requiresSection: true,
           checksumSha256: "a".repeat(64),
@@ -70,10 +54,7 @@ describe("media workflow validation", () => {
 
 function values(overrides: Partial<MediaFormValues> = {}): MediaFormValues {
   return {
-    sourceKind: "STATIC_HLS",
-    file: null,
     manifestPath: "",
-    durationSeconds: 0,
     encodingVersion: "",
     checksumSha256: "",
     title: "",

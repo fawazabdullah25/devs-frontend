@@ -24,13 +24,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import {
   addContentUnit,
@@ -39,6 +39,8 @@ import {
 } from "@/lib/api"
 import { useLocale } from "@/lib/locale-context"
 import { toast } from "@/components/ui/toast"
+import { CaptionTrackEditor } from "./caption-track-editor"
+import type { CaptionDraft } from "./caption-track-editor"
 import type { LearningContent } from "@/types/content"
 
 type FormValues = {
@@ -49,7 +51,6 @@ type FormValues = {
   summary: string
   summaryAr: string
   manifestPath: string
-  durationSeconds: string
   encodingVersion: string
   checksumSha256: string
   sectionId: string
@@ -75,7 +76,6 @@ function initialValues(content: LearningContent): FormValues {
     summary: "",
     summaryAr: "",
     manifestPath: "",
-    durationSeconds: "",
     encodingVersion: "",
     checksumSha256: "",
     sectionId: "",
@@ -93,10 +93,6 @@ function validate(values: FormValues, required: string) {
   if (!Number.isInteger(position) || position <= 0)
     errors.position = "invalidPosition"
   if (!values.manifestPath.trim()) errors.manifestPath = required
-  const duration = Number(values.durationSeconds)
-  if (!Number.isInteger(duration) || duration <= 0) {
-    errors.durationSeconds = "invalidDuration"
-  }
   if (!values.encodingVersion.trim()) errors.encodingVersion = required
   if (
     values.checksumSha256.trim() &&
@@ -113,7 +109,6 @@ function focusFirstError(errors: FormErrors) {
     "slug",
     "position",
     "manifestPath",
-    "durationSeconds",
     "encodingVersion",
     "checksumSha256",
     "sectionId",
@@ -127,11 +122,13 @@ export function AddLessonSheet({
   open,
   onOpenChange,
   onSaved,
+  onCaptionUpload,
 }: {
   content: LearningContent
   open: boolean
   onOpenChange: (open: boolean) => void
   onSaved: (content: LearningContent) => void
+  onCaptionUpload?: (file: File) => Promise<string>
 }) {
   const { locale, t } = useLocale()
   const isSeries = content.kind === "SERIES"
@@ -139,12 +136,14 @@ export function AddLessonSheet({
   const [errors, setErrors] = React.useState<FormErrors>({})
   const [busy, setBusy] = React.useState(false)
   const [progress, setProgress] = React.useState(0)
+  const [captions, setCaptions] = React.useState<CaptionDraft[]>([])
 
   React.useEffect(() => {
     if (open) {
       setValues(initialValues(content))
       setErrors({})
       setProgress(0)
+      setCaptions([])
     }
   }, [content, open])
 
@@ -159,18 +158,26 @@ export function AddLessonSheet({
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     const validation = validate(values, t("requiredField"))
+    if (
+      captions.some(
+        (caption) =>
+          !caption.language.trim() ||
+          !caption.label.trim() ||
+          !caption.path.trim()
+      )
+    ) {
+      validation.form = t("completeCaptionFields")
+    }
     const localizedErrors: FormErrors = Object.fromEntries(
       Object.entries(validation).map(([key, value]) => [
         key,
         value === "invalidSlug"
           ? t("invalidSlug")
-          : value === "invalidDuration"
-            ? t("invalidDuration")
-            : value === "invalidPosition"
-              ? t("invalidPosition")
-              : value === "invalidChecksum"
-                ? t("invalidChecksum")
-                : value,
+          : value === "invalidPosition"
+            ? t("invalidPosition")
+            : value === "invalidChecksum"
+              ? t("invalidChecksum")
+              : value,
       ])
     )
     setErrors(localizedErrors)
@@ -184,10 +191,14 @@ export function AddLessonSheet({
     try {
       const registered = await registerStaticHls({
         manifestPath: values.manifestPath.trim(),
-        durationSeconds: Number(values.durationSeconds),
         encodingVersion: values.encodingVersion.trim(),
         checksumSha256: values.checksumSha256.trim() || undefined,
-        captions: [],
+        captions: captions.map((caption) => ({
+          language: caption.language.trim(),
+          label: caption.label.trim(),
+          path: caption.path.trim(),
+          defaultTrack: caption.defaultTrack,
+        })),
       })
       setProgress(60)
       await addContentUnit(content.id, {
@@ -221,17 +232,13 @@ export function AddLessonSheet({
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
-        <SheetHeader>
-          <SheetTitle>{t("addLesson")}</SheetTitle>
-          <SheetDescription>{t("addLessonDescription")}</SheetDescription>
-        </SheetHeader>
-        <form
-          className="flex flex-1 flex-col gap-5 overflow-y-auto p-4"
-          onSubmit={submit}
-          noValidate
-        >
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[calc(100vh-2rem)] max-w-3xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{t("addLesson")}</DialogTitle>
+          <DialogDescription>{t("addLessonDescription")}</DialogDescription>
+        </DialogHeader>
+        <form className="flex flex-col gap-5" onSubmit={submit} noValidate>
           <FieldGroup>
             <Field data-invalid={Boolean(errors.title)}>
               <FieldLabel htmlFor="add-lesson-title">
@@ -369,23 +376,6 @@ export function AddLessonSheet({
               <FieldDescription>{t("technicalPath")}</FieldDescription>
               <FieldError>{errors.manifestPath}</FieldError>
             </Field>
-            <Field data-invalid={Boolean(errors.durationSeconds)}>
-              <FieldLabel htmlFor="add-lesson-durationSeconds">
-                {t("durationSeconds")}
-              </FieldLabel>
-              <Input
-                id="add-lesson-durationSeconds"
-                type="number"
-                min={1}
-                step={1}
-                value={values.durationSeconds}
-                onChange={(event) =>
-                  update("durationSeconds", event.target.value)
-                }
-                aria-invalid={Boolean(errors.durationSeconds)}
-              />
-              <FieldError>{errors.durationSeconds}</FieldError>
-            </Field>
             <Field data-invalid={Boolean(errors.encodingVersion)}>
               <FieldLabel htmlFor="add-lesson-encodingVersion">
                 {t("encodingVersion")}
@@ -415,6 +405,12 @@ export function AddLessonSheet({
               <FieldError>{errors.checksumSha256}</FieldError>
             </Field>
           </FieldGroup>
+          <CaptionTrackEditor
+            value={captions}
+            onChange={setCaptions}
+            disabled={busy}
+            onUpload={onCaptionUpload}
+          />
           <FieldError>{errors.form}</FieldError>
           {busy && (
             <Progress value={progress} aria-label={t("uploadProgress")}>
@@ -422,7 +418,7 @@ export function AddLessonSheet({
               <ProgressValue />
             </Progress>
           )}
-          <SheetFooter className="px-0">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -435,9 +431,9 @@ export function AddLessonSheet({
               <FileArrowUpIcon data-icon="inline-start" aria-hidden="true" />
               {busy ? t("loading") : t("addLesson")}
             </Button>
-          </SheetFooter>
+          </DialogFooter>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }

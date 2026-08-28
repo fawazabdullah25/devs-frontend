@@ -1,9 +1,11 @@
-import { instructors, levels, mockContent, topics } from "@/data/mock-content"
+import { instructors, mockContent, tags } from "@/data/mock-content"
 import { lessonNumber } from "@/lib/curriculum"
 import type {
   AdminSummary,
   CatalogFilters,
   CatalogPayload,
+  CaptionTrack,
+  CaptionUploadGrant,
   ContentMetadataInput,
   ContentUnit,
   CoverUploadGrant,
@@ -15,10 +17,11 @@ import type {
   MediaVersion,
   MediaProcessingStatus,
   ReferenceData,
+  Tag,
+  InstructorAvatarUploadGrant,
   StaticHlsInput,
   UnitInput,
   UnitUpdateInput,
-  UploadGrant,
   Attachment,
   AttachmentUploadGrant,
   CurriculumInput,
@@ -38,8 +41,7 @@ const mockDeletedMedia = new Map<string, MediaLibraryItem>()
 const mockMediaVersions = new Map<string, MediaVersion[]>()
 
 const mockReferenceData: ReferenceData = {
-  topics,
-  levels,
+  tags,
   instructors,
 }
 
@@ -313,25 +315,19 @@ export async function getCatalog(
         .some((value) => value?.toLowerCase().includes(query))
     const matchesKind =
       !filters.kind || filters.kind === "ALL" || content.kind === filters.kind
-    const matchesTopic =
-      !filters.topic ||
-      content.topics.some((topic) => topic.slug === filters.topic)
-    const matchesLevel = !filters.level || content.level.slug === filters.level
+    const contentTags = content.tags
+    const selectedTag = filters.tag
+    const matchesTag =
+      !selectedTag || contentTags.some((tag) => tag.slug === selectedTag)
     const matchesLanguage =
       !filters.language ||
       filters.language === "ALL" ||
       content.spokenLanguage === filters.language
 
-    return (
-      matchesQuery &&
-      matchesKind &&
-      matchesTopic &&
-      matchesLevel &&
-      matchesLanguage
-    )
+    return matchesQuery && matchesKind && matchesTag && matchesLanguage
   })
 
-  return { items, totalItems: items.length, topics, levels }
+  return { items, totalItems: items.length, tags: mockReferenceData.tags }
 }
 
 export async function getContent(
@@ -394,8 +390,7 @@ export async function getReferenceData(): Promise<ReferenceData> {
   if (!useMocks) {
     const data = await apiFetch<BackendReferenceData>("/admin/reference-data")
     return {
-      topics: data.topics,
-      levels: data.levels,
+      tags: data.tags,
       instructors: data.instructors.map(normalizeInstructor),
     }
   }
@@ -447,8 +442,7 @@ export async function createDraft(input: {
     summary: { en: input.summary },
     description: { en: "" },
     spokenLanguage: "MIXED",
-    level: levels[0],
-    topics: [],
+    tags: [],
     instructors: [],
     sections: [],
     units: [],
@@ -518,12 +512,8 @@ export async function updateContentMetadata(
       en: input.description,
       ar: input.descriptionAr || undefined,
     },
-    level:
-      mockReferenceData.levels.find(
-        (level) => level.slug === input.levelSlug
-      ) ?? existing.level,
-    topics: mockReferenceData.topics.filter((topic) =>
-      input.topicSlugs.includes(topic.slug)
+    tags: mockReferenceData.tags.filter((tag) =>
+      input.tagSlugs.includes(tag.slug)
     ),
     instructors: mockReferenceData.instructors.filter((instructor) =>
       input.instructorIds.includes(instructor.id)
@@ -619,81 +609,6 @@ export async function deleteCover(contentId: string): Promise<void> {
   mockAdminContent.splice(mockAdminContent.indexOf(existing), 1, updated)
 }
 
-export async function requestMediaUpload(file: File): Promise<UploadGrant> {
-  if (!useMocks) {
-    return apiFetch<UploadGrant>("/admin/media/uploads", {
-      method: "POST",
-      body: JSON.stringify({
-        filename: file.name,
-        contentType: file.type || "video/mp4",
-        contentLength: file.size,
-      }),
-    })
-  }
-  const mediaId = `media-${crypto.randomUUID()}`
-  mockMedia.set(mediaId, {
-    id: mediaId,
-    status: "UPLOADING",
-    durationSeconds: 0,
-    provider: "MUX",
-    captions: [],
-  })
-  return {
-    mediaId,
-    uploadUrl: "mock://upload",
-    objectKey: `source/mock/${file.name}`,
-    headers: { "Content-Type": file.type || "video/mp4" },
-    expiresAt: new Date(Date.now() + 20 * 60_000).toISOString(),
-  }
-}
-
-export async function uploadMediaSource(
-  grant: UploadGrant,
-  file: File,
-  onProgress: (percentage: number) => void
-): Promise<void> {
-  if (useMocks) {
-    for (const percentage of [18, 43, 71, 100]) {
-      await new Promise((resolve) => setTimeout(resolve, 120))
-      onProgress(percentage)
-    }
-    return
-  }
-
-  await new Promise<void>((resolve, reject) => {
-    const request = new XMLHttpRequest()
-    request.open("PUT", grant.uploadUrl)
-    Object.entries(grant.headers).forEach(([name, value]) =>
-      request.setRequestHeader(name, value)
-    )
-    request.upload.addEventListener("progress", (event) => {
-      if (event.lengthComputable) {
-        onProgress(Math.round((event.loaded / event.total) * 100))
-      }
-    })
-    request.addEventListener("load", () => {
-      if (request.status >= 200 && request.status < 300) resolve()
-      else reject(new ApiError(request.status, "The video upload failed"))
-    })
-    request.addEventListener("error", () =>
-      reject(new Error("The video upload could not reach object storage"))
-    )
-    request.send(file)
-  })
-}
-
-export async function startMediaIngest(mediaId: string): Promise<void> {
-  if (useMocks) {
-    await new Promise((resolve) => setTimeout(resolve, 250))
-    const media = mockMedia.get(mediaId)
-    if (media) mockMedia.set(mediaId, { ...media, status: "PROCESSING" })
-    return
-  }
-  await apiFetch(`/admin/media/${encodeURIComponent(mediaId)}/ingest`, {
-    method: "POST",
-  })
-}
-
 export async function registerStaticHls(
   input: StaticHlsInput
 ): Promise<MediaProcessingStatus> {
@@ -708,12 +623,15 @@ export async function registerStaticHls(
   const media: MediaAsset = {
     id: mediaId,
     status: "READY",
-    durationSeconds: input.durationSeconds,
-    provider: "STATIC_HLS",
+    durationSeconds: 3600,
+    technicalPath: input.manifestPath,
+    encodingVersion: input.encodingVersion,
+    checksumSha256: input.checksumSha256,
     playbackUrl: `https://video.example.test/${input.manifestPath}`,
     captions: input.captions.map((caption) => ({
       language: caption.language,
       label: caption.label,
+      path: caption.path,
       url: `https://video.example.test/${caption.path}`,
       defaultTrack: caption.defaultTrack,
     })),
@@ -722,10 +640,66 @@ export async function registerStaticHls(
   return {
     mediaId,
     status: "READY",
-    provider: "STATIC_HLS",
     playbackUrl: media.playbackUrl,
-    durationSeconds: input.durationSeconds,
+    durationSeconds: media.durationSeconds,
     captions: media.captions,
+  }
+}
+
+export async function uploadCaptionFile(file: File): Promise<string> {
+  if (useMocks) {
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    return `pilots/captions/${crypto.randomUUID()}/${file.name}`
+  }
+  const grant = await apiFetch<CaptionUploadGrant>(
+    "/admin/media/caption-uploads",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        filename: file.name,
+        contentType: file.type || "text/vtt",
+        contentLength: file.size,
+      }),
+    }
+  )
+  await uploadFile(grant.uploadUrl, grant.headers, file, () => undefined)
+  const completed = await apiFetch<{ uploadId: string; path: string }>(
+    `/admin/media/caption-uploads/${encodeURIComponent(grant.uploadId)}/complete`,
+    { method: "POST" }
+  )
+  return completed.path
+}
+
+export async function updateMediaCaptions(
+  mediaId: string,
+  captions: Array<
+    Pick<CaptionTrack, "language" | "label" | "path" | "defaultTrack">
+  >
+): Promise<MediaProcessingStatus> {
+  if (!useMocks) {
+    return apiFetch<MediaProcessingStatus>(
+      `/admin/media/${encodeURIComponent(mediaId)}/captions`,
+      { method: "PATCH", body: JSON.stringify({ captions }) }
+    )
+  }
+  const media = mockMedia.get(mediaId)
+  if (!media) throw new Error("Media not found")
+  const updated: MediaAsset = {
+    ...media,
+    captions: captions.map((caption) => ({
+      ...caption,
+      url: `https://video.example.test/${caption.path}`,
+    })),
+  }
+  mockMedia.set(mediaId, updated)
+  return {
+    mediaId,
+    status: updated.status,
+    playbackUrl: updated.playbackUrl,
+    durationSeconds: updated.durationSeconds,
+    encodingVersion: updated.encodingVersion,
+    technicalPath: updated.technicalPath,
+    captions: updated.captions,
   }
 }
 
@@ -739,10 +713,10 @@ export async function getMediaStatus(
   }
   return {
     mediaId,
-    status: "READY",
-    provider: mockMedia.get(mediaId)?.provider ?? "MUX",
-    durationSeconds: 3600,
-    playbackId: `mock-${mediaId}`,
+    status: mockMedia.get(mediaId)?.status ?? "READY",
+    playbackUrl: mockMedia.get(mediaId)?.playbackUrl,
+    durationSeconds: mockMedia.get(mediaId)?.durationSeconds ?? 3600,
+    captions: mockMedia.get(mediaId)?.captions ?? [],
   }
 }
 
@@ -756,7 +730,6 @@ function mediaLibraryFromContent(
         id: unit.media.id,
         kind: "VIDEO",
         status: unit.media.status,
-        provider: unit.media.provider,
         title: unit.title.en,
         durationSeconds: unit.media.durationSeconds,
         encodingVersion: unit.media.encodingVersion,
@@ -798,10 +771,7 @@ function mediaLibraryFromContent(
 
 interface BackendMediaLibraryItem {
   mediaId: string
-  provider?: MediaAsset["provider"]
   status: MediaAsset["status"] | "DELETED"
-  providerAssetId?: string
-  playbackId?: string
   playbackPath?: string
   playbackUrl?: string
   durationSeconds?: number
@@ -833,8 +803,7 @@ interface BackendInstructorProfile {
 }
 
 interface BackendReferenceData {
-  topics: ReferenceData["topics"]
-  levels: ReferenceData["levels"]
+  tags: Tag[]
   instructors: BackendInstructorProfile[]
 }
 
@@ -887,9 +856,7 @@ function mediaVersionFromAsset(
     mediaId: media.id,
     current,
     status: media.status,
-    provider: media.provider,
     durationSeconds: media.durationSeconds,
-    playbackId: media.playbackId,
     playbackUrl: media.playbackUrl,
     technicalPath: media.technicalPath,
     encodingVersion: media.encodingVersion,
@@ -907,7 +874,6 @@ function normalizeMediaLibraryItem(
     mediaId: item.mediaId,
     kind: "VIDEO",
     status: item.status,
-    provider: item.provider,
     title:
       attachment?.unitTitle ??
       item.playbackPath?.split("/").pop() ??
@@ -941,7 +907,6 @@ export async function getMediaLibrary(): Promise<MediaLibraryItem[]> {
     id: media.id,
     kind: "VIDEO" as const,
     status: media.status,
-    provider: media.provider,
     title: media.technicalPath?.split("/").pop() ?? media.id,
     durationSeconds: media.durationSeconds,
     encodingVersion: media.encodingVersion,
@@ -989,7 +954,6 @@ export async function deleteMedia(mediaId: string): Promise<void> {
     id: mediaId,
     kind: "VIDEO",
     status: "DELETED",
-    provider: media.provider,
     title: media.technicalPath?.split("/").pop() ?? mediaId,
     durationSeconds: media.durationSeconds,
     encodingVersion: media.encodingVersion,
@@ -1016,7 +980,6 @@ export async function restoreMedia(mediaId: string): Promise<MediaLibraryItem> {
   mockMedia.set(mediaId, {
     id: mediaId,
     status: "READY",
-    provider: deleted.provider ?? "STATIC_HLS",
     durationSeconds: deleted.durationSeconds ?? 0,
     encodingVersion: deleted.encodingVersion,
     captions: deleted.captions,
@@ -1108,9 +1071,7 @@ export async function restoreMediaVersion(
     mockMedia.set(mediaId, {
       id: mediaId,
       status: selected.status,
-      provider: selected.provider,
       durationSeconds: selected.durationSeconds,
-      playbackId: selected.playbackId,
       playbackUrl: selected.playbackUrl,
       technicalPath: selected.technicalPath,
       encodingVersion: selected.encodingVersion,
@@ -1154,8 +1115,6 @@ export async function addContentUnit(
       id: input.mediaId,
       status: "READY",
       durationSeconds: 3600,
-      provider: "MUX",
-      playbackId: `mock-${input.mediaId}`,
       captions: [],
     },
   }
@@ -1192,6 +1151,7 @@ export async function updateContentUnit(
         ? {
             ...unit,
             slug: input.slug,
+            sectionId: input.sectionId,
             title: { en: input.title, ar: input.titleAr },
             summary: input.summary
               ? { en: input.summary, ar: input.summaryAr }
@@ -1284,7 +1244,6 @@ export async function createInstructor(input: {
   bioEn: string
   bioAr?: string
   initials: string
-  avatarUrl?: string
 }): Promise<Instructor> {
   if (!useMocks) {
     const instructor = await apiFetch<BackendInstructorProfile>(
@@ -1301,7 +1260,7 @@ export async function createInstructor(input: {
     name: { en: input.nameEn, ar: input.nameAr || undefined },
     bio: { en: input.bioEn, ar: input.bioAr || undefined },
     initials: input.initials,
-    avatarUrl: input.avatarUrl,
+    avatarUrl: undefined,
   }
   mockReferenceData.instructors.push(instructor)
   return instructor
@@ -1315,7 +1274,6 @@ export async function updateInstructor(
     bioEn: string
     bioAr?: string
     initials: string
-    avatarUrl?: string
   }
 ): Promise<Instructor> {
   if (!useMocks) {
@@ -1334,7 +1292,7 @@ export async function updateInstructor(
     name: { en: input.nameEn, ar: input.nameAr || undefined },
     bio: { en: input.bioEn, ar: input.bioAr || undefined },
     initials: input.initials,
-    avatarUrl: input.avatarUrl,
+    avatarUrl: existing.avatarUrl,
   }
   mockReferenceData.instructors.splice(
     mockReferenceData.instructors.indexOf(existing),
@@ -1342,6 +1300,185 @@ export async function updateInstructor(
     updated
   )
   return updated
+}
+
+export async function deleteInstructor(instructorId: string): Promise<void> {
+  if (useMocks) {
+    const index = mockReferenceData.instructors.findIndex(
+      (item) => item.id === instructorId
+    )
+    if (index < 0) throw new Error("Instructor not found")
+    if (
+      mockAdminContent.some((content) =>
+        content.instructors.some((item) => item.id === instructorId)
+      )
+    ) {
+      throw new Error("Instructor is assigned to content and cannot be deleted")
+    }
+    mockReferenceData.instructors.splice(index, 1)
+    return
+  }
+  await apiFetch<void>(
+    `/admin/instructors/${encodeURIComponent(instructorId)}`,
+    { method: "DELETE" }
+  )
+}
+
+export async function requestInstructorAvatarUpload(
+  instructorId: string,
+  file: File
+): Promise<InstructorAvatarUploadGrant> {
+  if (!useMocks) {
+    return apiFetch<InstructorAvatarUploadGrant>(
+      `/admin/instructors/${encodeURIComponent(instructorId)}/avatar/uploads`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type || "image/jpeg",
+          contentLength: file.size,
+        }),
+      }
+    )
+  }
+  const avatarId = `avatar-${crypto.randomUUID()}`
+  return {
+    avatar: {
+      id: avatarId,
+      filename: file.name,
+      contentType: file.type || "image/jpeg",
+      contentLength: file.size,
+      status: "UPLOADING",
+    },
+    uploadUrl: "mock://avatar-upload",
+    objectKey: `instructor-avatar/${instructorId}/${avatarId}/${file.name}`,
+    headers: { "Content-Type": file.type || "image/jpeg" },
+    expiresAt: new Date(Date.now() + 20 * 60_000).toISOString(),
+  }
+}
+
+export async function uploadInstructorAvatar(
+  grant: InstructorAvatarUploadGrant,
+  file: File,
+  onProgress: (percentage: number) => void
+): Promise<void> {
+  if (useMocks) {
+    for (const percentage of [25, 60, 100]) {
+      await new Promise((resolve) => setTimeout(resolve, 70))
+      onProgress(percentage)
+    }
+    return
+  }
+  await uploadFile(grant.uploadUrl, grant.headers, file, onProgress)
+}
+
+export async function completeInstructorAvatarUpload(
+  instructorId: string,
+  avatarId: string
+): Promise<void> {
+  if (useMocks) {
+    const current = mockReferenceData.instructors.find(
+      (item) => item.id === instructorId
+    )
+    if (current)
+      current.avatarUrl = `https://images.example.test/instructor-avatar/${avatarId}`
+    return
+  }
+  await apiFetch(
+    `/admin/instructors/${encodeURIComponent(instructorId)}/avatar/complete`,
+    {
+      method: "POST",
+      body: JSON.stringify({ avatarId }),
+    }
+  )
+}
+
+export async function deleteInstructorAvatar(
+  instructorId: string
+): Promise<void> {
+  if (useMocks) {
+    const current = mockReferenceData.instructors.find(
+      (item) => item.id === instructorId
+    )
+    if (current) current.avatarUrl = undefined
+    return
+  }
+  await apiFetch<void>(
+    `/admin/instructors/${encodeURIComponent(instructorId)}/avatar`,
+    { method: "DELETE" }
+  )
+}
+
+export async function getTags(): Promise<Tag[]> {
+  if (useMocks) return mockReferenceData.tags
+  return apiFetch<Tag[]>("/admin/tags")
+}
+
+export async function createTag(input: {
+  group: Tag["group"]
+  nameEn: string
+  nameAr?: string
+  slug: string
+}): Promise<Tag> {
+  if (!useMocks) {
+    return apiFetch<Tag>("/admin/tags", {
+      method: "POST",
+      body: JSON.stringify(input),
+    })
+  }
+  const tag: Tag = {
+    id: `tag-${crypto.randomUUID()}`,
+    group: input.group,
+    slug: input.slug,
+    name: { en: input.nameEn, ar: input.nameAr || undefined },
+  }
+  const existingTags = mockReferenceData.tags
+  mockReferenceData.tags = [...existingTags, tag]
+  return tag
+}
+
+export async function updateTag(
+  tagId: string,
+  input: { group: Tag["group"]; nameEn: string; nameAr?: string; slug: string }
+): Promise<Tag> {
+  if (!useMocks) {
+    return apiFetch<Tag>(`/admin/tags/${encodeURIComponent(tagId)}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    })
+  }
+  const existingTags = mockReferenceData.tags
+  const existing = existingTags.find((tag) => tag.id === tagId)
+  if (!existing) throw new Error("Tag not found")
+  const updated: Tag = {
+    ...existing,
+    group: input.group,
+    slug: input.slug,
+    name: { en: input.nameEn, ar: input.nameAr || undefined },
+  }
+  mockReferenceData.tags = existingTags.map((tag) =>
+    tag.id === tagId ? updated : tag
+  )
+  return updated
+}
+
+export async function deleteTag(tagId: string): Promise<void> {
+  if (!useMocks) {
+    await apiFetch<void>(`/admin/tags/${encodeURIComponent(tagId)}`, {
+      method: "DELETE",
+    })
+    return
+  }
+  if (
+    mockAdminContent.some((content) =>
+      content.tags.some((tag) => tag.id === tagId)
+    )
+  ) {
+    throw new Error("Tag is assigned to content and cannot be deleted")
+  }
+  mockReferenceData.tags = mockReferenceData.tags.filter(
+    (tag) => tag.id !== tagId
+  )
 }
 
 export async function replaceCurriculum(

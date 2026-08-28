@@ -11,12 +11,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
   Field,
   FieldDescription,
   FieldError,
@@ -29,13 +23,6 @@ import {
   ProgressLabel,
   ProgressValue,
 } from "@/components/ui/progress"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
@@ -49,6 +36,7 @@ import {
 import { useLocale } from "@/lib/locale-context"
 import { toast } from "@/components/ui/toast"
 import { InstructorManager } from "./instructor-manager"
+import { TagAssignment } from "./tag-assignment"
 import type {
   ContentMetadataInput,
   LearningContent,
@@ -191,9 +179,7 @@ export function ContentDetailsForm({
     }
   }
 
-  const selectedTopics = referenceData.topics.filter((topic) =>
-    form.topicSlugs.includes(topic.slug)
-  )
+  const availableTags = referenceData.tags
 
   return (
     <form className="flex flex-col gap-6" onSubmit={save} noValidate>
@@ -265,7 +251,6 @@ export function ContentDetailsForm({
                 onChange={(event) => update("slug", event.target.value)}
                 aria-invalid={Boolean(errors.slug)}
               />
-              <FieldDescription>{t("kindImmutable")}</FieldDescription>
               <FieldError>{errors.slug}</FieldError>
             </Field>
             <Field>
@@ -315,60 +300,11 @@ export function ContentDetailsForm({
                 </ToggleGroupItem>
               </ToggleGroup>
             </Field>
-            <Field>
-              <FieldLabel htmlFor="content-level">{t("level")}</FieldLabel>
-              <Select
-                value={form.levelSlug}
-                onValueChange={(value) => value && update("levelSlug", value)}
-              >
-                <SelectTrigger id="content-level" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {referenceData.levels.map((level) => (
-                    <SelectItem key={level.slug} value={level.slug}>
-                      {localizeName(level.name, locale)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field>
-              <FieldLabel>{t("topics")}</FieldLabel>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full justify-between"
-                    />
-                  }
-                >
-                  {selectedTopics.length
-                    ? selectedTopics
-                        .map((topic) => localizeName(topic.name, locale))
-                        .join(", ")
-                    : t("selectTopics")}
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-72">
-                  {referenceData.topics.map((topic) => (
-                    <DropdownMenuCheckboxItem
-                      key={topic.slug}
-                      checked={form.topicSlugs.includes(topic.slug)}
-                      onCheckedChange={() =>
-                        update(
-                          "topicSlugs",
-                          toggleValue(form.topicSlugs, topic.slug)
-                        )
-                      }
-                    >
-                      {localizeName(topic.name, locale)}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </Field>
+            <TagAssignment
+              tags={availableTags}
+              selectedSlugs={form.tagSlugs}
+              onSelectedChange={(slugs) => update("tagSlugs", slugs)}
+            />
             <Field>
               <FieldLabel htmlFor="featured-rank">
                 {t("featuredRank")}
@@ -385,6 +321,7 @@ export function ContentDetailsForm({
                   )
                 }
               />
+              <FieldDescription>{t("featuredRankHint")}</FieldDescription>
             </Field>
           </FieldGroup>
           <InstructorManager
@@ -527,19 +464,8 @@ function toForm(content: LearningContent): ContentMetadataInput {
     descriptionAr: content.description.ar,
     visibility: content.visibility,
     spokenLanguage: content.spokenLanguage,
-    levelSlug: content.level.slug,
-    topicSlugs: content.topics.map((topic) => topic.slug),
+    tagSlugs: content.tags.map((tag) => tag.slug),
     instructorIds: content.instructors.map((instructor) => instructor.id),
     featuredRank: content.featuredRank,
   }
-}
-
-function toggleValue(values: string[], value: string) {
-  return values.includes(value)
-    ? values.filter((item) => item !== value)
-    : [...values, value]
-}
-
-function localizeName(value: { en: string; ar?: string }, locale: "en" | "ar") {
-  return value[locale] || value.en
 }

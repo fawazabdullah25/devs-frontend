@@ -5,8 +5,8 @@ export type PublicationStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED"
 export type ContentVisibility = "PUBLIC" | "AUTHENTICATED" | "STUDENT_ONLY"
 export type MediaStatus = "UPLOADING" | "PROCESSING" | "READY" | "FAILED"
 export type SpokenLanguage = "AR" | "EN" | "MIXED"
-export type MediaProvider = "MUX" | "STATIC_HLS" | "LOCAL"
 export type MediaLibraryKind = "VIDEO" | "ATTACHMENT"
+export type TagGroup = "TOPIC" | "DIFFICULTY" | "GENERAL"
 
 export interface LocalizedText {
   en: string
@@ -21,14 +21,9 @@ export interface Instructor {
   avatarUrl?: string
 }
 
-export interface Topic {
+export interface Tag {
   id: string
-  slug: string
-  name: LocalizedText
-}
-
-export interface Level {
-  id: string
+  group: TagGroup
   slug: string
   name: LocalizedText
 }
@@ -37,10 +32,8 @@ export interface MediaAsset {
   id: string
   status: MediaStatus
   durationSeconds: number
-  playbackId?: string
   playbackUrl?: string
-  playbackToken?: string
-  provider: MediaProvider
+  checksumSha256?: string
   encodingVersion?: string
   technicalPath?: string
   updatedAt?: string
@@ -50,6 +43,7 @@ export interface MediaAsset {
 export interface CaptionTrack {
   language: string
   label: string
+  path: string
   url: string
   defaultTrack: boolean
 }
@@ -98,8 +92,7 @@ export interface LearningContent {
   summary: LocalizedText
   description: LocalizedText
   spokenLanguage: SpokenLanguage
-  level: Level
-  topics: Topic[]
+  tags: Tag[]
   instructors: Instructor[]
   sections: ContentSection[]
   units: ContentUnit[]
@@ -122,20 +115,39 @@ export interface ContentMetadataInput {
   descriptionAr?: string
   visibility: ContentVisibility
   spokenLanguage: SpokenLanguage
-  levelSlug: string
-  topicSlugs: string[]
+  tagSlugs: string[]
   instructorIds: string[]
   featuredRank?: number
 }
 
 export interface ReferenceData {
-  topics: Topic[]
-  levels: Level[]
+  tags: Tag[]
   instructors: Instructor[]
 }
 
 export interface CoverUploadGrant {
   cover: ContentCover
+  uploadUrl: string
+  objectKey: string
+  headers: Record<string, string>
+  expiresAt: string
+}
+
+export interface InstructorAvatar {
+  id: string
+  filename?: string
+  contentType?: string
+  contentLength?: number
+  status?: "UPLOADING" | "READY" | "DELETED" | string
+  url?: string
+  createdAt?: string
+  updatedAt?: string
+  deletedAt?: string
+  purgeAfter?: string
+}
+
+export interface InstructorAvatarUploadGrant {
+  avatar: InstructorAvatar
   uploadUrl: string
   objectKey: string
   headers: Record<string, string>
@@ -160,7 +172,6 @@ export interface MediaLibraryItem {
   mediaId?: string
   kind: MediaLibraryKind
   status: MediaStatus | "DELETED"
-  provider?: MediaProvider
   title: string
   filename?: string
   contentType?: string
@@ -193,10 +204,7 @@ export interface MediaVersion {
   mediaId?: string
   current?: boolean
   status: MediaStatus
-  provider: MediaProvider
   durationSeconds: number
-  providerAssetId?: string
-  playbackId?: string
   playbackUrl?: string
   playbackPath?: string
   encodingVersion?: string
@@ -212,8 +220,7 @@ export interface MediaVersion {
 export interface CatalogFilters {
   query?: string
   kind?: ContentKind | "ALL"
-  topic?: string
-  level?: string
+  tag?: string
   language?: SpokenLanguage | "ALL"
 }
 
@@ -230,8 +237,7 @@ export interface HomePayload {
 export interface CatalogPayload {
   items: LearningContent[]
   totalItems: number
-  topics: Topic[]
-  levels: Level[]
+  tags: Tag[]
 }
 
 export interface AdminSummary {
@@ -241,14 +247,6 @@ export interface AdminSummary {
   processingMedia: number
   views: number
   watchedMinutes: number
-}
-
-export interface UploadGrant {
-  mediaId: string
-  uploadUrl: string
-  objectKey: string
-  headers: Record<string, string>
-  expiresAt: string
 }
 
 export interface AttachmentUploadGrant {
@@ -262,9 +260,6 @@ export interface AttachmentUploadGrant {
 export interface MediaProcessingStatus {
   mediaId: string
   status: MediaStatus
-  provider?: MediaAsset["provider"]
-  providerAssetId?: string
-  playbackId?: string
   playbackUrl?: string
   durationSeconds: number
   encodingVersion?: string
@@ -275,7 +270,6 @@ export interface MediaProcessingStatus {
 
 export interface StaticHlsInput {
   manifestPath: string
-  durationSeconds: number
   checksumSha256?: string
   encodingVersion: string
   captions: Array<{
@@ -284,6 +278,14 @@ export interface StaticHlsInput {
     path: string
     defaultTrack: boolean
   }>
+}
+
+export interface CaptionUploadGrant {
+  uploadId: string
+  uploadUrl: string
+  objectKey: string
+  headers: Record<string, string>
+  expiresAt: string
 }
 
 export interface UnitInput {
@@ -303,6 +305,7 @@ export interface UnitUpdateInput {
   summary?: string
   summaryAr?: string
   slug: string
+  sectionId?: string
 }
 
 export interface CurriculumSectionInput {

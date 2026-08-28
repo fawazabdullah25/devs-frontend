@@ -191,7 +191,7 @@ export function AttachmentManager({
                 aria-hidden="true"
               />
               {editing === attachment.id ? (
-                <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
+                <div className="grid min-w-0 flex-1 gap-2 md:grid-cols-2">
                   <Input
                     aria-label={t("attachmentTitleEnglish")}
                     value={editTitle}
@@ -312,7 +312,7 @@ export function AttachmentManager({
 
       <form onSubmit={submit} className="flex flex-col gap-4">
         <FieldGroup>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             <Field>
               <FieldLabel htmlFor={`attachment-title-${unit.id}`}>
                 {t("attachmentTitleEnglish")}

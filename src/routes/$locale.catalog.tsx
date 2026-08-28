@@ -75,18 +75,11 @@ function CatalogPage() {
   }
 
   const clearFilters = () => setFilters({ kind: "ALL", language: "ALL" })
-  const topicItems = [
+  const tagItems = [
     { value: "ALL", label: t("all") },
-    ...initialCatalog.topics.map((topic) => ({
-      value: topic.slug,
-      label: localize(topic.name, locale),
-    })),
-  ]
-  const levelItems = [
-    { value: "ALL", label: t("all") },
-    ...initialCatalog.levels.map((level) => ({
-      value: level.slug,
-      label: localize(level.name, locale),
+    ...initialCatalog.tags.map((tag) => ({
+      value: tag.slug,
+      label: localize(tag.name, locale),
     })),
   ]
   const languageItems = [
@@ -146,21 +139,13 @@ function CatalogPage() {
             </ToggleGroup>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <FilterSelect
-              label={t("topic")}
-              value={filters.topic ?? "ALL"}
-              items={topicItems}
+              label={t("tags")}
+              value={filters.tag ?? "ALL"}
+              items={tagItems}
               onValueChange={(value) =>
-                updateFilter("topic", value === "ALL" ? undefined : value)
-              }
-            />
-            <FilterSelect
-              label={t("level")}
-              value={filters.level ?? "ALL"}
-              items={levelItems}
-              onValueChange={(value) =>
-                updateFilter("level", value === "ALL" ? undefined : value)
+                updateFilter("tag", value === "ALL" ? undefined : value)
               }
             />
             <FilterSelect

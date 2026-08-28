@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLocale } from "@/lib/locale-context"
+import { uploadCaptionFile } from "@/lib/api"
 import { useRouter } from "@tanstack/react-router"
 import { CurriculumEditor } from "@/components/curriculum-editor"
 import { ContentDetailsForm } from "./content-details-form"
@@ -45,6 +46,7 @@ export function ContentWorkspace({
     void router.invalidate({ sync: true }).catch(() => undefined)
   }
   const previewPath = `/${locale}/${content.kind === "COURSE" ? "courses" : "series"}/${content.slug}`
+  const previewDescriptionId = `content-preview-description-${content.id}`
 
   return (
     <div className="content-shell py-8 sm:py-12">
@@ -87,15 +89,32 @@ export function ContentWorkspace({
             <p className="text-muted-foreground">{content.slug}</p>
           </div>
         </div>
-        <Button
-          render={<a href={previewPath} target="_blank" rel="noreferrer" />}
-          nativeButton={false}
-          variant="outline"
-          disabled={content.status !== "PUBLISHED"}
-        >
-          <ArrowSquareOutIcon data-icon="inline-start" aria-hidden="true" />
-          {t("preview")}
-        </Button>
+        {content.status === "PUBLISHED" ? (
+          <Button
+            render={<a href={previewPath} target="_blank" rel="noreferrer" />}
+            nativeButton={false}
+            variant="outline"
+          >
+            <ArrowSquareOutIcon data-icon="inline-start" aria-hidden="true" />
+            {t("preview")}
+          </Button>
+        ) : (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              disabled
+              aria-describedby={previewDescriptionId}
+              title={t("previewUnavailable")}
+            >
+              <ArrowSquareOutIcon data-icon="inline-start" aria-hidden="true" />
+              {t("preview")}
+            </Button>
+            <span id={previewDescriptionId} className="sr-only">
+              {t("previewUnavailable")}
+            </span>
+          </>
+        )}
       </header>
 
       <Tabs
@@ -104,7 +123,7 @@ export function ContentWorkspace({
       >
         <TabsList
           variant="line"
-          className="w-full justify-start overflow-x-auto sm:w-fit"
+          className="no-scrollbar w-full touch-pan-x justify-start overflow-x-auto overscroll-x-contain sm:w-fit"
         >
           <TabsTrigger value="details">{t("details")}</TabsTrigger>
           <TabsTrigger value="curriculum">{t("curriculum")}</TabsTrigger>
@@ -123,6 +142,7 @@ export function ContentWorkspace({
             content={content}
             selectedLessonId={selectedLessonId}
             onChanged={changed}
+            onCaptionUpload={uploadCaptionFile}
           />
           {content.kind === "SERIES" && (
             <CurriculumEditor initial={content} embedded onSaved={changed} />
@@ -131,7 +151,6 @@ export function ContentWorkspace({
         <TabsContent value="publishing" className="mt-6">
           <ContentPublishing
             content={content}
-            locale={locale}
             onSaved={changed}
             onDeleted={onDeleted}
           />

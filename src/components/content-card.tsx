@@ -61,9 +61,11 @@ export function ContentCard({ content }: { content: LearningContent }) {
       <CardHeader>
         <div className="flex flex-wrap items-center gap-2">
           <Badge>{content.kind === "COURSE" ? t("course") : t("series")}</Badge>
-          <Badge variant="outline">
-            {localize(content.level.name, locale)}
-          </Badge>
+          {content.tags.slice(0, 3).map((tag) => (
+            <Badge key={tag.id} variant="outline">
+              {localize(tag.name, locale)}
+            </Badge>
+          ))}
         </div>
         <CardTitle className="text-lg">{title}</CardTitle>
         <CardDescription className="line-clamp-2 leading-relaxed">

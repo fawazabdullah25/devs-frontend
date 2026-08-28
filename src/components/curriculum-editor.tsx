@@ -220,6 +220,16 @@ export function CurriculumEditor({
       label: section.title || t("section"),
     })),
   ]
+  const addSectionAction = (
+    <Button
+      variant="outline"
+      className="w-fit"
+      onClick={() => setEditingKey("new")}
+    >
+      <PlusIcon data-icon="inline-start" />
+      {t("addSection")}
+    </Button>
+  )
   const actions = (
     <div className="flex flex-wrap gap-2">
       <Button
@@ -248,7 +258,7 @@ export function CurriculumEditor({
       }
     >
       {!embedded && (
-        <header className="flex flex-col gap-5 border-b pb-7 sm:flex-row sm:items-end sm:justify-between">
+        <header className="flex flex-col gap-5 border-b pb-7 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex max-w-3xl flex-col gap-3">
             <Button
               variant="ghost"
@@ -284,12 +294,12 @@ export function CurriculumEditor({
               </p>
             </div>
           </div>
-          {actions}
+          {addSectionAction}
         </header>
       )}
 
       {embedded && (
-        <div className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-1">
             <h2 className="text-xl font-semibold">
               {t("curriculumEditorTitle")}
@@ -298,7 +308,7 @@ export function CurriculumEditor({
               {t("curriculumEditorDescription")}
             </p>
           </div>
-          {actions}
+          {addSectionAction}
         </div>
       )}
 
@@ -450,15 +460,6 @@ export function CurriculumEditor({
           </Card>
         ))}
 
-        <Button
-          variant="outline"
-          className="w-fit"
-          onClick={() => setEditingKey("new")}
-        >
-          <PlusIcon data-icon="inline-start" />
-          {t("addSection")}
-        </Button>
-
         {unsectioned.length > 0 && (
           <Card>
             <CardHeader>
@@ -486,6 +487,10 @@ export function CurriculumEditor({
           </Card>
         )}
       </main>
+
+      <footer className="flex flex-col gap-2 border-t pt-6 sm:flex-row sm:justify-end">
+        {actions}
+      </footer>
 
       <SectionEditorDialog
         section={

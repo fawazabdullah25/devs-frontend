@@ -23,12 +23,6 @@ vi.mock("@/lib/locale-context", () => ({
   }),
 }))
 
-vi.mock("@mux/mux-player-react", () => ({
-  default: ({ playbackId }: { playbackId: string }) => (
-    <div data-testid="mux-player" data-playback-id={playbackId} />
-  ),
-}))
-
 vi.mock("@vidstack/react", () => ({
   isHLSProvider: (provider: { type?: string } | null) =>
     provider?.type === "hls",
@@ -117,18 +111,19 @@ describe("VideoPlayer", () => {
       <VideoPlayer
         title="Lesson"
         unit={unit({
-          provider: "STATIC_HLS",
           playbackUrl: "https://video.example.test/lesson/v1/master.m3u8",
           captions: [
             {
               language: "en",
               label: "English",
+              path: "lesson/v1/captions/en.vtt",
               url: "https://video.example.test/lesson/v1/captions/en.vtt",
               defaultTrack: false,
             },
             {
               language: "ar",
               label: "العربية",
+              path: "lesson/v1/captions/ar.vtt",
               url: "https://video.example.test/lesson/v1/captions/ar.vtt",
               defaultTrack: false,
             },
@@ -150,7 +145,6 @@ describe("VideoPlayer", () => {
     expect(
       screen.getByTestId("video-controls").getAttribute("data-minimum-rate")
     ).toBe("0.25")
-    expect(screen.queryByTestId("mux-player")).toBeNull()
   })
 
   it("localizes the static HLS layout and caption labels in Arabic", () => {
@@ -160,18 +154,19 @@ describe("VideoPlayer", () => {
       <VideoPlayer
         title="الدرس"
         unit={unit({
-          provider: "STATIC_HLS",
           playbackUrl: "https://video.example.test/lesson/v1/master.m3u8",
           captions: [
             {
               language: "en",
               label: "English",
+              path: "lesson/v1/captions/en.vtt",
               url: "https://video.example.test/lesson/v1/captions/en.vtt",
               defaultTrack: false,
             },
             {
               language: "ar",
               label: "Arabic",
+              path: "lesson/v1/captions/ar.vtt",
               url: "https://video.example.test/lesson/v1/captions/ar.vtt",
               defaultTrack: false,
             },
@@ -192,25 +187,9 @@ describe("VideoPlayer", () => {
         .map((track) => track.getAttribute("data-label"))
     ).toEqual(["الترجمة الإنجليزية", "الترجمة العربية"])
   })
-
-  it("preserves the existing Mux player path", () => {
-    render(
-      <VideoPlayer
-        title="Mux lesson"
-        unit={unit({ provider: "MUX", playbackId: "mux-playback-1" })}
-      />
-    )
-
-    expect(
-      screen.getByTestId("mux-player").getAttribute("data-playback-id")
-    ).toBe("mux-playback-1")
-    expect(screen.queryByTestId("hls-player")).toBeNull()
-  })
 })
 
-function unit(
-  media: Partial<ContentUnit["media"]> & Pick<ContentUnit["media"], "provider">
-): ContentUnit {
+function unit(media: Partial<ContentUnit["media"]>): ContentUnit {
   return {
     id: "unit-1",
     slug: "lesson",

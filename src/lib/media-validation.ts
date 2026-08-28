@@ -1,9 +1,5 @@
-export type MediaSourceKind = "STATIC_HLS" | "MUX"
-
 export type MediaFormField =
-  | "file"
   | "manifestPath"
-  | "durationSeconds"
   | "encodingVersion"
   | "checksumSha256"
   | "title"
@@ -12,21 +8,14 @@ export type MediaFormField =
   | "sectionId"
 
 export type MediaValidationMessage =
-  | "requiredField"
-  | "invalidSlug"
-  | "invalidDuration"
-  | "invalidPosition"
-  | "invalidChecksum"
+  "requiredField" | "invalidSlug" | "invalidPosition" | "invalidChecksum"
 
 export type MediaFormErrors = Partial<
   Record<MediaFormField, MediaValidationMessage>
 >
 
 export interface MediaFormValues {
-  sourceKind: MediaSourceKind
-  file: File | null
   manifestPath: string
-  durationSeconds: number
   encodingVersion: string
   checksumSha256: string
   title: string
@@ -59,17 +48,9 @@ export function validateMediaForm(values: MediaFormValues): MediaFormErrors {
     errors.sectionId = "requiredField"
   }
 
-  if (values.sourceKind === "MUX") {
-    if (!values.file) errors.file = "requiredField"
-    return errors
-  }
-
   if (!values.manifestPath.trim()) errors.manifestPath = "requiredField"
   if (!values.encodingVersion.trim()) {
     errors.encodingVersion = "requiredField"
-  }
-  if (!Number.isFinite(values.durationSeconds) || values.durationSeconds <= 0) {
-    errors.durationSeconds = "invalidDuration"
   }
   if (
     values.checksumSha256.trim() &&

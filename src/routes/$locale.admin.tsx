@@ -22,6 +22,7 @@ import { ContentCreateDialog } from "@/components/admin/content-create-dialog"
 import { ContentLibrary } from "@/components/admin/content-library"
 import { InstructorManager } from "@/components/admin/instructor-manager"
 import { MediaLibrary } from "@/components/admin/media-library"
+import { TagManager } from "@/components/admin/tag-manager"
 import type {
   AdminSection,
   AdminSnapshot,
@@ -165,14 +166,22 @@ function AdminPage() {
       )}
       {section === "settings" && (
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="flex flex-col gap-8 pt-6">
             <InstructorManager
               instructors={referenceData.instructors}
               selectedIds={[]}
               locale={locale}
               onSelectedChange={() => undefined}
+              manageProfiles
               onChanged={(instructors) => {
                 setReferenceData((current) => ({ ...current, instructors }))
+                refresh()
+              }}
+            />
+            <TagManager
+              tags={referenceData.tags}
+              onChanged={(tags) => {
+                setReferenceData((current) => ({ ...current, tags }))
                 refresh()
               }}
             />

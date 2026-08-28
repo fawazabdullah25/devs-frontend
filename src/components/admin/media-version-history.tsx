@@ -133,7 +133,6 @@ export function MediaVersionHistory({
                         {current ? t("currentVersion") : t("retainedVersion")}
                       </Badge>
                       <span className="text-sm font-medium">
-                        {version.provider} ·{" "}
                         {formatDuration(version.durationSeconds)}
                       </span>
                     </div>

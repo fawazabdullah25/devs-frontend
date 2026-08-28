@@ -1,33 +1,45 @@
-import type { Instructor, LearningContent, Level, Topic } from "@/types/content"
+import type { Instructor, LearningContent, Tag } from "@/types/content"
 
-export const topics: Topic[] = [
+export const tags: Tag[] = [
   {
     id: "topic-web",
+    group: "TOPIC",
     slug: "web",
     name: { en: "Web Development", ar: "تطوير الويب" },
   },
   {
     id: "topic-backend",
+    group: "TOPIC",
     slug: "backend",
     name: { en: "Backend", ar: "تطوير الخوادم" },
   },
   {
     id: "topic-git",
+    group: "TOPIC",
     slug: "git",
     name: { en: "Git & Collaboration", ar: "جِت والعمل الجماعي" },
   },
-  { id: "topic-data", slug: "data", name: { en: "Data", ar: "البيانات" } },
-]
-
-export const levels: Level[] = [
+  {
+    id: "topic-data",
+    group: "TOPIC",
+    slug: "data",
+    name: { en: "Data", ar: "البيانات" },
+  },
   {
     id: "level-start",
+    group: "DIFFICULTY",
     slug: "getting-started",
     name: { en: "Getting started", ar: "تمهيدي" },
   },
-  { id: "level-build", slug: "builder", name: { en: "Builder", ar: "تطبيقي" } },
+  {
+    id: "level-build",
+    group: "DIFFICULTY",
+    slug: "builder",
+    name: { en: "Builder", ar: "تطبيقي" },
+  },
   {
     id: "level-deep",
+    group: "DIFFICULTY",
     slug: "deep-dive",
     name: { en: "Deep dive", ar: "متقدم" },
   },
@@ -72,7 +84,6 @@ const lesson = (
     id: `media-${id}`,
     status: "READY" as const,
     durationSeconds,
-    provider: "LOCAL" as const,
     captions: [],
   },
 })
@@ -94,8 +105,7 @@ export const mockContent: LearningContent[] = [
       ar: "مسار عملي يمر على HTML وCSS الحديثة والتصميم المتجاوب وإمكانية الوصول وأدوات المتصفح التي ستستخدمها يومياً.",
     },
     spokenLanguage: "AR",
-    level: levels[0],
-    topics: [topics[0]],
+    tags: [tags[4], tags[0]],
     instructors: [instructors[0]],
     sections: [
       {
@@ -176,8 +186,7 @@ export const mockContent: LearningContent[] = [
       ar: "تتبّع الطلب من المتحكم إلى الخدمة والمستودع وPostgreSQL والتحقق والاختبارات وفحوصات الحاوية.",
     },
     spokenLanguage: "MIXED",
-    level: levels[1],
-    topics: [topics[1]],
+    tags: [tags[5], tags[1]],
     instructors: [instructors[1]],
     sections: [],
     units: [
@@ -227,8 +236,7 @@ export const mockContent: LearningContent[] = [
       ar: "دورة مركزة تساعدك على المساهمة بثقة في مستودع مشترك دون حفظ أوامر غامضة.",
     },
     spokenLanguage: "AR",
-    level: levels[0],
-    topics: [topics[2]],
+    tags: [tags[4], tags[2]],
     instructors: [instructors[0], instructors[1]],
     sections: [],
     units: [
@@ -262,8 +270,7 @@ export const mockContent: LearningContent[] = [
       ar: "طبّق على قاعدة بيانات حقيقية وتعلّم قرارات SQL التي لا تستطيع أطر العمل اتخاذها بالنيابة عنك.",
     },
     spokenLanguage: "EN",
-    level: levels[1],
-    topics: [topics[1], topics[3]],
+    tags: [tags[5], tags[1], tags[3]],
     instructors: [instructors[1]],
     sections: [],
     units: [
@@ -297,8 +304,7 @@ export const mockContent: LearningContent[] = [
       ar: "تعلّم اختيار حدود المكونات وملكية البيانات قبل إضافة المزيد من المكتبات.",
     },
     spokenLanguage: "MIXED",
-    level: levels[1],
-    topics: [topics[0]],
+    tags: [tags[5], tags[0]],
     instructors: [instructors[0]],
     sections: [],
     units: [
@@ -347,8 +353,7 @@ export const mockContent: LearningContent[] = [
       ar: "ابنِ حاوية خدمة حقيقية وافحصها، ثم افهم ما الذي تضيفه Kubernetes.",
     },
     spokenLanguage: "AR",
-    level: levels[0],
-    topics: [topics[1]],
+    tags: [tags[4], tags[1]],
     instructors: [instructors[1]],
     sections: [],
     units: [

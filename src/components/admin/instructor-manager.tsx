@@ -1,7 +1,15 @@
 import * as React from "react"
-import { PencilSimpleIcon, PlusIcon } from "@phosphor-icons/react"
+import {
+  CaretDownIcon,
+  CheckIcon,
+  PencilSimpleIcon,
+  PlusIcon,
+  TrashIcon,
+  XIcon,
+} from "@phosphor-icons/react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -12,15 +20,38 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import {
+  Progress,
+  ProgressLabel,
+  ProgressValue,
+} from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
-import { createInstructor, updateInstructor } from "@/lib/api"
+import {
+  completeInstructorAvatarUpload,
+  createInstructor,
+  deleteInstructor,
+  deleteInstructorAvatar,
+  getInstructors,
+  requestInstructorAvatarUpload,
+  updateInstructor,
+  uploadInstructorAvatar,
+} from "@/lib/api"
 import { useLocale } from "@/lib/locale-context"
+import { toast } from "@/components/ui/toast"
 import { localize } from "@/types/content"
 import type { Instructor, Locale } from "@/types/content"
 
@@ -30,7 +61,6 @@ type FormValues = {
   bioEn: string
   bioAr: string
   initials: string
-  avatarUrl: string
 }
 
 const emptyForm: FormValues = {
@@ -39,7 +69,6 @@ const emptyForm: FormValues = {
   bioEn: "",
   bioAr: "",
   initials: "",
-  avatarUrl: "",
 }
 
 export function InstructorManager({
@@ -48,12 +77,14 @@ export function InstructorManager({
   locale,
   onSelectedChange,
   onChanged,
+  manageProfiles = false,
 }: {
   instructors: Instructor[]
   selectedIds: string[]
   locale: Locale
   onSelectedChange: (ids: string[]) => void
-  onChanged: (instructors: Instructor[]) => void
+  onChanged?: (instructors: Instructor[]) => void
+  manageProfiles?: boolean
 }) {
   const { t } = useLocale()
   const [open, setOpen] = React.useState(false)
@@ -61,6 +92,28 @@ export function InstructorManager({
   const [form, setForm] = React.useState<FormValues>(emptyForm)
   const [error, setError] = React.useState("")
   const [busy, setBusy] = React.useState(false)
+  const [menuOpen, setMenuOpen] = React.useState(false)
+  const [query, setQuery] = React.useState("")
+  const [avatarFile, setAvatarFile] = React.useState<File | null>(null)
+  const [avatarProgress, setAvatarProgress] = React.useState(0)
+
+  const selected = instructors.filter((instructor) =>
+    selectedIds.includes(instructor.id)
+  )
+  const available = instructors.filter((instructor) => {
+    const needle = query.trim().toLowerCase()
+    return (
+      !needle ||
+      [
+        instructor.name.en,
+        instructor.name.ar,
+        instructor.bio.en,
+        instructor.bio.ar,
+      ]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(needle))
+    )
+  })
 
   const openForm = (instructor?: Instructor) => {
     setEditing(instructor ?? null)
@@ -72,21 +125,21 @@ export function InstructorManager({
             bioEn: instructor.bio.en,
             bioAr: instructor.bio.ar ?? "",
             initials: instructor.initials,
-            avatarUrl: instructor.avatarUrl ?? "",
           }
         : emptyForm
     )
+    setAvatarFile(null)
+    setAvatarProgress(0)
     setError("")
     setOpen(true)
   }
 
-  const toggle = (id: string) => {
+  const toggle = (id: string) =>
     onSelectedChange(
       selectedIds.includes(id)
-        ? selectedIds.filter((selected) => selected !== id)
+        ? selectedIds.filter((selectedId) => selectedId !== id)
         : [...selectedIds, id]
     )
-  }
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -103,17 +156,70 @@ export function InstructorManager({
         bioEn: form.bioEn.trim(),
         bioAr: form.bioAr.trim() || undefined,
         initials: form.initials.trim().slice(0, 4),
-        avatarUrl: form.avatarUrl.trim() || undefined,
       }
       const saved = editing
         ? await updateInstructor(editing.id, input)
         : await createInstructor(input)
+      if (avatarFile) {
+        if (!/^image\/(jpeg|png|webp|avif)$/.test(avatarFile.type))
+          throw new Error(t("avatarImageHint"))
+        const grant = await requestInstructorAvatarUpload(saved.id, avatarFile)
+        await uploadInstructorAvatar(grant, avatarFile, setAvatarProgress)
+        await completeInstructorAvatarUpload(saved.id, grant.avatar.id)
+      }
+      const refreshed = onChanged ? await getInstructors() : [saved]
       const next = editing
-        ? instructors.map((item) => (item.id === saved.id ? saved : item))
-        : [...instructors, saved]
-      onChanged(next)
+        ? refreshed.length
+          ? refreshed
+          : instructors.map((item) => (item.id === saved.id ? saved : item))
+        : refreshed.length
+          ? refreshed
+          : [...instructors, saved]
+      onChanged?.(next)
       if (!editing) onSelectedChange([...selectedIds, saved.id])
       setOpen(false)
+      toast.add({
+        title: editing ? t("instructorUpdated") : t("instructorCreated"),
+        type: "success",
+      })
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t("saveFailed"))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const remove = async (instructor: Instructor) => {
+    if (!window.confirm(t("deleteInstructorConfirm"))) return
+    setBusy(true)
+    try {
+      await deleteInstructor(instructor.id)
+      onChanged?.(instructors.filter((item) => item.id !== instructor.id))
+      onSelectedChange(selectedIds.filter((id) => id !== instructor.id))
+      toast.add({ title: t("instructorDeleted"), type: "success" })
+    } catch (caught) {
+      toast.add({
+        title: t("deleteInstructorFailed"),
+        description:
+          caught instanceof Error
+            ? caught.message
+            : t("deleteInstructorFailed"),
+        type: "error",
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const removeAvatar = async () => {
+    if (!editing) return
+    setBusy(true)
+    try {
+      await deleteInstructorAvatar(editing.id)
+      const refreshed = await getInstructors()
+      onChanged?.(refreshed)
+      setEditing(refreshed.find((item) => item.id === editing.id) ?? editing)
+      toast.add({ title: t("avatarRemoved"), type: "success" })
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("saveFailed"))
     } finally {
@@ -122,48 +228,130 @@ export function InstructorManager({
   }
 
   return (
-    <div className="flex flex-col gap-3 border-t pt-5">
+    <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-medium">{t("instructors")}</h3>
           <p className="text-xs text-muted-foreground">
-            {t("instructorProfiles")}
+            {manageProfiles ? t("instructorProfiles") : t("selectInstructors")}
           </p>
         </div>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => openForm()}
-        >
-          <PlusIcon data-icon="inline-start" aria-hidden="true" />
-          {t("addInstructor")}
-        </Button>
+        {manageProfiles && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => openForm()}
+          >
+            <PlusIcon data-icon="inline-start" aria-hidden="true" />
+            {t("addInstructor")}
+          </Button>
+        )}
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {instructors.map((instructor) => {
-          const selected = selectedIds.includes(instructor.id)
-          return (
-            <div
+
+      {!manageProfiles && selected.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {selected.map((instructor) => (
+            <Badge
               key={instructor.id}
-              className={`flex items-center gap-3 border p-3 ${selected ? "border-primary bg-primary/5" : "bg-muted/10"}`}
+              variant="secondary"
+              className="gap-2 pe-1"
             >
-              <button
+              <Avatar size="sm">
+                {instructor.avatarUrl && (
+                  <AvatarImage src={instructor.avatarUrl} alt="" />
+                )}
+                <AvatarFallback>{instructor.initials}</AvatarFallback>
+              </Avatar>
+              {localize(instructor.name, locale)}
+              <Button
                 type="button"
-                className="flex min-w-0 flex-1 items-center gap-3 text-start focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
-                aria-pressed={selected}
+                variant="ghost"
+                size="icon-xs"
+                className="rounded-full"
+                aria-label={`${t("removeInstructor")}: ${localize(instructor.name, locale)}`}
                 onClick={() => toggle(instructor.id)}
               >
-                <Avatar size="sm">
-                  {instructor.avatarUrl && (
-                    <AvatarImage src={instructor.avatarUrl} alt="" />
-                  )}
-                  <AvatarFallback>{instructor.initials}</AvatarFallback>
-                </Avatar>
-                <span className="min-w-0 truncate text-sm">
+                <XIcon aria-hidden="true" />
+              </Button>
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      {!manageProfiles && (
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-between"
+              />
+            }
+          >
+            {selected.length ? t("editInstructors") : t("selectInstructors")}
+            <CaretDownIcon data-icon="inline-end" aria-hidden="true" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            className="max-h-96 w-(--anchor-width) min-w-64 p-1"
+          >
+            <Input
+              value={query}
+              placeholder={t("searchInstructors")}
+              aria-label={t("searchInstructors")}
+              className="mb-1"
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => event.stopPropagation()}
+            />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>{t("instructors")}</DropdownMenuLabel>
+              {available.map((instructor) => (
+                <DropdownMenuCheckboxItem
+                  key={instructor.id}
+                  checked={selectedIds.includes(instructor.id)}
+                  onCheckedChange={() => toggle(instructor.id)}
+                  onSelect={(event) => event.preventDefault()}
+                >
+                  <Avatar size="sm">
+                    {instructor.avatarUrl && (
+                      <AvatarImage src={instructor.avatarUrl} alt="" />
+                    )}
+                    <AvatarFallback>{instructor.initials}</AvatarFallback>
+                  </Avatar>
                   {localize(instructor.name, locale)}
-                </span>
-              </button>
+                  {selectedIds.includes(instructor.id) && (
+                    <CheckIcon className="ms-auto" aria-hidden="true" />
+                  )}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuGroup>
+            {!available.length && (
+              <p className="px-2 py-3 text-xs text-muted-foreground">
+                {t("noInstructorsFound")}
+              </p>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+
+      {manageProfiles && instructors.length > 0 && (
+        <div className="flex flex-col gap-2 pt-2">
+          {instructors.map((instructor) => (
+            <div
+              key={instructor.id}
+              className="flex items-center gap-3 border p-3"
+            >
+              <Avatar size="sm">
+                {instructor.avatarUrl && (
+                  <AvatarImage src={instructor.avatarUrl} alt="" />
+                )}
+                <AvatarFallback>{instructor.initials}</AvatarFallback>
+              </Avatar>
+              <span className="min-w-0 flex-1 truncate text-sm">
+                {localize(instructor.name, locale)}
+              </span>
               <Button
                 type="button"
                 size="icon-sm"
@@ -173,10 +361,20 @@ export function InstructorManager({
               >
                 <PencilSimpleIcon aria-hidden="true" />
               </Button>
+              <Button
+                type="button"
+                size="icon-sm"
+                variant="ghost"
+                onClick={() => void remove(instructor)}
+                aria-label={`${t("deleteInstructor")}: ${localize(instructor.name, locale)}`}
+              >
+                <TrashIcon aria-hidden="true" />
+              </Button>
             </div>
-          )
-        })}
-      </div>
+          ))}
+        </div>
+      )}
+
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -254,19 +452,40 @@ export function InstructorManager({
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="instructor-avatar">
-                  {t("avatarUrl")}
+                <FieldLabel htmlFor="instructor-avatar-file">
+                  {t("avatarImage")}
                 </FieldLabel>
-                <Input
-                  id="instructor-avatar"
-                  type="url"
-                  value={form.avatarUrl}
+                <input
+                  id="instructor-avatar-file"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  className="block w-full text-sm text-muted-foreground file:me-3 file:border-0 file:bg-primary file:px-3 file:py-2 file:text-primary-foreground"
                   onChange={(event) =>
-                    setForm({ ...form, avatarUrl: event.target.value })
+                    setAvatarFile(event.currentTarget.files?.[0] ?? null)
                   }
                 />
+                <p className="text-xs text-muted-foreground">
+                  {t("avatarImageHint")}
+                </p>
+                {editing?.avatarUrl && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => void removeAvatar()}
+                  >
+                    <XIcon data-icon="inline-start" aria-hidden="true" />
+                    {t("removeAvatar")}
+                  </Button>
+                )}
               </Field>
             </FieldGroup>
+            {busy && avatarFile && (
+              <Progress value={avatarProgress} aria-label={t("uploadProgress")}>
+                <ProgressLabel>{t("uploadProgress")}</ProgressLabel>
+                <ProgressValue />
+              </Progress>
+            )}
             <FieldError>{error}</FieldError>
             <DialogFooter>
               <Button

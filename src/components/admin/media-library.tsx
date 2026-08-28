@@ -236,9 +236,8 @@ function MediaRow({
           <Badge variant={item.status === "READY" ? "default" : "secondary"}>
             {item.status}
           </Badge>
-          {item.provider && <Badge variant="outline">{item.provider}</Badge>}
           <Badge variant="outline">
-            {item.kind === "VIDEO" ? t("lesson") : t("attachments")}
+            {item.kind === "VIDEO" ? t("video") : t("attachments")}
           </Badge>
         </div>
         <p className="text-xs text-muted-foreground">
@@ -313,7 +312,6 @@ function MediaInspect({
   const { t } = useLocale()
   const rows = [
     [t("status"), item.status],
-    [t("provider"), item.provider ?? "—"],
     [
       t("destination"),
       item.attachedUnitId

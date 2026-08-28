@@ -1,5 +1,4 @@
 import * as React from "react"
-import MuxPlayer from "@mux/mux-player-react"
 import { VideoCameraIcon } from "@phosphor-icons/react"
 import {
   isHLSProvider,
@@ -33,10 +32,7 @@ export function VideoPlayer({
 }) {
   const { t } = useLocale()
   const media = unit.media
-  const playbackSource =
-    media.provider === "MUX"
-      ? media.playbackId
-      : media.playbackUrl || media.playbackId
+  const playbackSource = media.playbackUrl
 
   if (media.status !== "READY" || !playbackSource) {
     return (
@@ -52,38 +48,11 @@ export function VideoPlayer({
     )
   }
 
-  if (media.provider === "LOCAL") {
-    return (
-      <video
-        className="aspect-video w-full bg-foreground"
-        src={playbackSource}
-        controls
-        preload="metadata"
-      >
-        <track kind="captions" />
-      </video>
-    )
-  }
-
-  if (media.provider === "STATIC_HLS") {
-    return (
-      <StaticHlsPlayer
-        media={media}
-        playbackSource={playbackSource}
-        title={title}
-      />
-    )
-  }
-
   return (
-    <MuxPlayer
-      playbackId={media.playbackId}
-      tokens={
-        media.playbackToken ? { playback: media.playbackToken } : undefined
-      }
-      metadata={{ video_id: media.id, video_title: title }}
-      accentColor="var(--primary)"
-      className="aspect-video w-full"
+    <StaticHlsPlayer
+      media={media}
+      playbackSource={playbackSource}
+      title={title}
     />
   )
 }

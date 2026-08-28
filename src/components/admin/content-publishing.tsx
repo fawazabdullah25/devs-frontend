@@ -2,7 +2,6 @@ import * as React from "react"
 import {
   ArchiveIcon,
   ArrowCounterClockwiseIcon,
-  ArrowSquareOutIcon,
   CheckCircleIcon,
   CircleIcon,
   PaperPlaneTiltIcon,
@@ -37,18 +36,16 @@ import {
 } from "@/lib/api"
 import { getPublishingReadiness } from "@/lib/admin-readiness"
 import { toast } from "@/components/ui/toast"
-import type { LearningContent, Locale } from "@/types/content"
+import type { LearningContent } from "@/types/content"
 
 type Action = "publish" | "archive" | "unarchive" | "trash"
 
 export function ContentPublishing({
   content,
-  locale,
   onSaved,
   onDeleted,
 }: {
   content: LearningContent
-  locale: Locale
   onSaved: (content: LearningContent) => void
   onDeleted: () => void
 }) {
@@ -56,7 +53,6 @@ export function ContentPublishing({
   const [action, setAction] = React.useState<Action | null>(null)
   const [busy, setBusy] = React.useState(false)
   const readiness = getPublishingReadiness(content)
-  const previewPath = `/${locale}/${content.kind === "COURSE" ? "courses" : "series"}/${content.slug}`
 
   const run = async () => {
     if (!action) return
@@ -129,14 +125,6 @@ export function ContentPublishing({
           <CardTitle>{t("publishing")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Button
-            render={<a href={previewPath} target="_blank" rel="noreferrer" />}
-            nativeButton={false}
-            variant="outline"
-          >
-            <ArrowSquareOutIcon data-icon="inline-start" aria-hidden="true" />
-            {t("preview")}
-          </Button>
           {content.status !== "PUBLISHED" && (
             <Button
               disabled={!readiness.ready}
