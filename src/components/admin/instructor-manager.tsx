@@ -1,7 +1,6 @@
 import * as React from "react"
 import {
   CaretDownIcon,
-  CheckIcon,
   PencilSimpleIcon,
   PlusIcon,
   TrashIcon,
@@ -54,6 +53,7 @@ import { useLocale } from "@/lib/locale-context"
 import { toast } from "@/components/ui/toast"
 import { localize } from "@/types/content"
 import type { Instructor, Locale } from "@/types/content"
+import { ImageCropDialog } from "./image-crop-dialog"
 
 type FormValues = {
   nameEn: string
@@ -95,7 +95,9 @@ export function InstructorManager({
   const [menuOpen, setMenuOpen] = React.useState(false)
   const [query, setQuery] = React.useState("")
   const [avatarFile, setAvatarFile] = React.useState<File | null>(null)
+  const [pendingAvatar, setPendingAvatar] = React.useState<File | null>(null)
   const [avatarProgress, setAvatarProgress] = React.useState(0)
+  const avatarPreviewUrl = useObjectUrl(avatarFile)
 
   const selected = instructors.filter((instructor) =>
     selectedIds.includes(instructor.id)
@@ -129,6 +131,7 @@ export function InstructorManager({
         : emptyForm
     )
     setAvatarFile(null)
+    setPendingAvatar(null)
     setAvatarProgress(0)
     setError("")
     setOpen(true)
@@ -257,11 +260,13 @@ export function InstructorManager({
               variant="secondary"
               className="gap-2 pe-1"
             >
-              <Avatar size="sm">
+              <Avatar className="size-4">
                 {instructor.avatarUrl && (
                   <AvatarImage src={instructor.avatarUrl} alt="" />
                 )}
-                <AvatarFallback>{instructor.initials}</AvatarFallback>
+                <AvatarFallback className="text-[0.5rem]">
+                  {instructor.initials}
+                </AvatarFallback>
               </Avatar>
               {localize(instructor.name, locale)}
               <Button
@@ -321,9 +326,6 @@ export function InstructorManager({
                     <AvatarFallback>{instructor.initials}</AvatarFallback>
                   </Avatar>
                   {localize(instructor.name, locale)}
-                  {selectedIds.includes(instructor.id) && (
-                    <CheckIcon className="ms-auto" aria-hidden="true" />
-                  )}
                 </DropdownMenuCheckboxItem>
               ))}
             </DropdownMenuGroup>
@@ -460,13 +462,23 @@ export function InstructorManager({
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/avif"
                   className="block w-full text-sm text-muted-foreground file:me-3 file:border-0 file:bg-primary file:px-3 file:py-2 file:text-primary-foreground"
-                  onChange={(event) =>
-                    setAvatarFile(event.currentTarget.files?.[0] ?? null)
-                  }
+                  onChange={(event) => {
+                    setPendingAvatar(event.currentTarget.files?.[0] ?? null)
+                    event.currentTarget.value = ""
+                  }}
                 />
                 <p className="text-xs text-muted-foreground">
                   {t("avatarImageHint")}
                 </p>
+                {avatarPreviewUrl && (
+                  <Avatar size="lg">
+                    <AvatarImage
+                      src={avatarPreviewUrl}
+                      alt={t("croppedImagePreview")}
+                    />
+                    <AvatarFallback>{form.initials || "KS"}</AvatarFallback>
+                  </Avatar>
+                )}
                 {editing?.avatarUrl && (
                   <Button
                     type="button"
@@ -502,6 +514,34 @@ export function InstructorManager({
           </form>
         </DialogContent>
       </Dialog>
+      <ImageCropDialog
+        file={pendingAvatar}
+        aspect={1}
+        outputWidth={512}
+        outputHeight={512}
+        shape="circle"
+        onCancel={() => setPendingAvatar(null)}
+        onCropped={(file) => {
+          setAvatarFile(file)
+          setPendingAvatar(null)
+        }}
+      />
     </div>
   )
+}
+
+function useObjectUrl(file: File | null) {
+  const [url, setUrl] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (!file) {
+      setUrl(null)
+      return
+    }
+    const next = URL.createObjectURL(file)
+    setUrl(next)
+    return () => URL.revokeObjectURL(next)
+  }, [file])
+
+  return url
 }

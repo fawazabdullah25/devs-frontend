@@ -332,12 +332,32 @@ export function LessonDialog({
         >
           <TabsList
             variant="line"
-            className="mx-6 shrink-0 justify-start overflow-x-auto"
+            className="mx-6 grid w-auto shrink-0 grid-cols-4 overflow-hidden"
           >
-            <TabsTrigger value="details">{t("details")}</TabsTrigger>
-            <TabsTrigger value="video">{t("video")}</TabsTrigger>
-            <TabsTrigger value="captions">{t("captions")}</TabsTrigger>
-            <TabsTrigger value="attachments">{t("attachments")}</TabsTrigger>
+            <TabsTrigger
+              className="min-w-0 overflow-hidden text-ellipsis"
+              value="details"
+            >
+              {t("details")}
+            </TabsTrigger>
+            <TabsTrigger
+              className="min-w-0 overflow-hidden text-ellipsis"
+              value="video"
+            >
+              {t("video")}
+            </TabsTrigger>
+            <TabsTrigger
+              className="min-w-0 overflow-hidden text-ellipsis"
+              value="captions"
+            >
+              {t("captions")}
+            </TabsTrigger>
+            <TabsTrigger
+              className="min-w-0 overflow-hidden text-ellipsis"
+              value="attachments"
+            >
+              {t("attachments")}
+            </TabsTrigger>
           </TabsList>
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
             <TabsContent value="details" className="flex flex-col gap-5">

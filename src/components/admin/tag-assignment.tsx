@@ -63,6 +63,7 @@ export function TagAssignment({
   return (
     <Field>
       <FieldLabel>{t("tags")}</FieldLabel>
+      <FieldDescription>{t("tagsHint")}</FieldDescription>
       <div className="flex flex-wrap gap-2">
         {selected.map((tag) => (
           <Badge key={tag.slug} variant="secondary" className="gap-1 pe-1">
@@ -131,7 +132,6 @@ export function TagAssignment({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-      <FieldDescription>{t("tagsHint")}</FieldDescription>
     </Field>
   )
 }

@@ -172,11 +172,12 @@ export function LessonManagement({
           value={lessonTab}
           onValueChange={(value) => setLessonTab(value as "active" | "trash")}
         >
-          <TabsList variant="line" className="w-full justify-start sm:w-fit">
+          <TabsList
+            variant="line"
+            className="grid w-full grid-cols-2 overflow-hidden sm:w-fit"
+          >
             <TabsTrigger value="active">{t("currentLessons")}</TabsTrigger>
-            <TabsTrigger value="trash">
-              {t("lessonTrash")} ({deletedUnits.length})
-            </TabsTrigger>
+            <TabsTrigger value="trash">{t("lessonTrash")}</TabsTrigger>
           </TabsList>
           <TabsContent value="active" className="mt-4 flex flex-col gap-3">
             {content.units.length ? (

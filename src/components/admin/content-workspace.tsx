@@ -1,5 +1,9 @@
 import * as React from "react"
-import { ArrowLeftIcon, ArrowSquareOutIcon } from "@phosphor-icons/react"
+import {
+  ArrowLeftIcon,
+  ArrowSquareOutIcon,
+  CheckIcon,
+} from "@phosphor-icons/react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -47,6 +51,7 @@ export function ContentWorkspace({
   }
   const previewPath = `/${locale}/${content.kind === "COURSE" ? "courses" : "series"}/${content.slug}`
   const previewDescriptionId = `content-preview-description-${content.id}`
+  const detailsFormId = `content-details-form-${content.id}`
 
   return (
     <div className="content-shell py-8 sm:py-12">
@@ -121,20 +126,29 @@ export function ContentWorkspace({
         value={tab}
         onValueChange={(value) => onTabChange(value as WorkspaceTab)}
       >
-        <TabsList
-          variant="line"
-          className="no-scrollbar w-full touch-pan-x justify-start overflow-x-auto overscroll-x-contain sm:w-fit"
-        >
-          <TabsTrigger value="details">{t("details")}</TabsTrigger>
-          <TabsTrigger value="curriculum">{t("curriculum")}</TabsTrigger>
-          <TabsTrigger value="publishing">{t("publishing")}</TabsTrigger>
-        </TabsList>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <TabsList
+            variant="line"
+            className="grid w-full grid-cols-3 overflow-hidden sm:w-fit"
+          >
+            <TabsTrigger value="details">{t("details")}</TabsTrigger>
+            <TabsTrigger value="curriculum">{t("curriculum")}</TabsTrigger>
+            <TabsTrigger value="publishing">{t("publishing")}</TabsTrigger>
+          </TabsList>
+          {tab === "details" && (
+            <Button type="submit" form={detailsFormId}>
+              {t("saveMetadata")}
+              <CheckIcon data-icon="inline-end" aria-hidden="true" />
+            </Button>
+          )}
+        </div>
         <TabsContent value="details" className="mt-6">
           <ContentDetailsForm
             content={content}
             referenceData={referenceData}
             onSaved={changed}
             onReferenceDataChanged={setReferenceData}
+            formId={detailsFormId}
           />
         </TabsContent>
         <TabsContent value="curriculum" className="mt-6 flex flex-col gap-6">

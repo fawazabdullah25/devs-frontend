@@ -1,5 +1,5 @@
 import * as React from "react"
-import { CheckIcon, ImageIcon, XIcon } from "@phosphor-icons/react"
+import { ImageIcon, XIcon } from "@phosphor-icons/react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -35,6 +35,7 @@ import {
 } from "@/lib/api"
 import { useLocale } from "@/lib/locale-context"
 import { toast } from "@/components/ui/toast"
+import { ImageCropDialog } from "./image-crop-dialog"
 import { InstructorManager } from "./instructor-manager"
 import { TagAssignment } from "./tag-assignment"
 import type {
@@ -49,11 +50,13 @@ export function ContentDetailsForm({
   referenceData,
   onSaved,
   onReferenceDataChanged,
+  formId,
 }: {
   content: LearningContent
   referenceData: ReferenceData
   onSaved: (content: LearningContent) => void
   onReferenceDataChanged: (referenceData: ReferenceData) => void
+  formId?: string
 }) {
   const { locale, t } = useLocale()
   const [form, setForm] = React.useState<ContentMetadataInput>(() =>
@@ -65,6 +68,7 @@ export function ContentDetailsForm({
   const [busy, setBusy] = React.useState(false)
   const [coverBusy, setCoverBusy] = React.useState(false)
   const [coverProgress, setCoverProgress] = React.useState(0)
+  const [pendingCover, setPendingCover] = React.useState<File | null>(null)
   const coverInputRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => setForm(toForm(content)), [content])
@@ -91,6 +95,7 @@ export function ContentDetailsForm({
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (busy) return
     const valid = validate()
     if (!valid) {
       const invalidKeys = ["title", "summary", "description", "slug"] as const
@@ -182,7 +187,12 @@ export function ContentDetailsForm({
   const availableTags = referenceData.tags
 
   return (
-    <form className="flex flex-col gap-6" onSubmit={save} noValidate>
+    <form
+      id={formId}
+      className="flex flex-col gap-6"
+      onSubmit={save}
+      noValidate
+    >
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center gap-2">
@@ -278,6 +288,20 @@ export function ContentDetailsForm({
                 </ToggleGroupItem>
               </ToggleGroup>
             </Field>
+            <InstructorManager
+              instructors={referenceData.instructors}
+              selectedIds={form.instructorIds}
+              locale={locale}
+              onSelectedChange={(ids) => update("instructorIds", ids)}
+              onChanged={(instructors) =>
+                onReferenceDataChanged({ ...referenceData, instructors })
+              }
+            />
+            <TagAssignment
+              tags={availableTags}
+              selectedSlugs={form.tagSlugs}
+              onSelectedChange={(slugs) => update("tagSlugs", slugs)}
+            />
             <Field>
               <FieldLabel>{t("spokenLanguage")}</FieldLabel>
               <ToggleGroup
@@ -300,11 +324,6 @@ export function ContentDetailsForm({
                 </ToggleGroupItem>
               </ToggleGroup>
             </Field>
-            <TagAssignment
-              tags={availableTags}
-              selectedSlugs={form.tagSlugs}
-              onSelectedChange={(slugs) => update("tagSlugs", slugs)}
-            />
             <Field>
               <FieldLabel htmlFor="featured-rank">
                 {t("featuredRank")}
@@ -324,15 +343,6 @@ export function ContentDetailsForm({
               <FieldDescription>{t("featuredRankHint")}</FieldDescription>
             </Field>
           </FieldGroup>
-          <InstructorManager
-            instructors={referenceData.instructors}
-            selectedIds={form.instructorIds}
-            locale={locale}
-            onSelectedChange={(ids) => update("instructorIds", ids)}
-            onChanged={(instructors) =>
-              onReferenceDataChanged({ ...referenceData, instructors })
-            }
-          />
           <FieldError className="mt-4">
             {(errors as Record<string, string | undefined>).form}
           </FieldError>
@@ -368,7 +378,7 @@ export function ContentDetailsForm({
                 className="sr-only"
                 onChange={(event) => {
                   const file = event.target.files?.[0]
-                  if (file) void uploadCover(file)
+                  if (file) setPendingCover(file)
                   event.currentTarget.value = ""
                 }}
               />
@@ -401,12 +411,17 @@ export function ContentDetailsForm({
           )}
         </CardContent>
       </Card>
-      <div className="flex justify-end">
-        <Button type="submit" disabled={busy}>
-          {busy ? t("loading") : t("saveMetadata")}
-          <CheckIcon data-icon="inline-end" aria-hidden="true" />
-        </Button>
-      </div>
+      <ImageCropDialog
+        file={pendingCover}
+        aspect={16 / 9}
+        outputWidth={1600}
+        outputHeight={900}
+        onCancel={() => setPendingCover(null)}
+        onCropped={async (file) => {
+          setPendingCover(null)
+          await uploadCover(file)
+        }}
+      />
     </form>
   )
 }
