@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -231,15 +232,15 @@ export function InstructorManager({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="font-medium">{t("instructors")}</h3>
-          <p className="text-xs text-muted-foreground">
-            {manageProfiles ? t("instructorProfiles") : t("selectInstructors")}
-          </p>
-        </div>
-        {manageProfiles && (
+    <Field className={manageProfiles ? "gap-3" : undefined}>
+      {manageProfiles ? (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="font-medium">{t("instructors")}</h3>
+            <p className="text-xs text-muted-foreground">
+              {t("instructorProfiles")}
+            </p>
+          </div>
           <Button
             type="button"
             size="sm"
@@ -249,8 +250,13 @@ export function InstructorManager({
             <PlusIcon data-icon="inline-start" aria-hidden="true" />
             {t("addInstructor")}
           </Button>
-        )}
-      </div>
+        </div>
+      ) : (
+        <>
+          <FieldLabel>{t("instructors")}</FieldLabel>
+          <FieldDescription>{t("selectInstructors")}</FieldDescription>
+        </>
+      )}
 
       {!manageProfiles && selected.length > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -526,7 +532,7 @@ export function InstructorManager({
           setPendingAvatar(null)
         }}
       />
-    </div>
+    </Field>
   )
 }
 
